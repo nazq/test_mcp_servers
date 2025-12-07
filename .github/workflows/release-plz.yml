@@ -1,4 +1,4 @@
-name: Release-plz
+name: Release
 
 on:
   push:
@@ -6,23 +6,25 @@ on:
       - main
 
 permissions:
-  pull-requests: write
   contents: write
+  pull-requests: write
 
-concurrency:
-  group: release-plz-${{ github.ref }}
-  cancel-in-progress: false
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
+  # Create/update release PR with changelog and version bumps
   release-pr:
-    name: Create/Update Release PR
+    name: Release PR
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -34,24 +36,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Only cut a release when the release PR is merged
-  # This is detected by checking if the commit message matches release-plz pattern
+  # Create GitHub releases for any unpublished versions
+  # Only creates a release when Cargo.toml version > latest git tag
   release:
-    name: Create Release
+    name: Release
     runs-on: ubuntu-latest
-    # Only run when merging a release-plz PR
-    if: "startsWith(github.event.head_commit.message, 'chore: release')"
+    outputs:
+      releases_created: ${{ steps.release-plz.outputs.releases_created }}
+      releases: ${{ steps.release-plz.outputs.releases }}
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run release-plz release
+        id: release-plz
         uses: release-plz/action@v0.5
         with:
           command: release
