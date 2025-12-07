@@ -29,6 +29,9 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install release-plz
+        run: cargo install release-plz --locked
+
       - name: Get latest tag
         id: latest-tag
         run: |
@@ -36,20 +39,18 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           if [ -n "$TAG" ]; then
             echo "Found latest tag: $TAG"
+            git worktree add ../release-ref "$TAG"
           else
             echo "No tags found"
           fi
 
-      - name: Checkout tag for comparison
-        if: steps.latest-tag.outputs.tag != ''
-        run: |
-          git worktree add ../release-ref ${{ steps.latest-tag.outputs.tag }}
-
       - name: Run release-plz release-pr
-        uses: release-plz/action@v0.5
-        with:
-          command: release-pr
-          registry_manifest_path: ${{ steps.latest-tag.outputs.tag != '' && '../release-ref/Cargo.toml' || '' }}
+        run: |
+          if [ -n "${{ steps.latest-tag.outputs.tag }}" ]; then
+            release-plz release-pr --git-token "$GITHUB_TOKEN" --registry-manifest-path ../release-ref/Cargo.toml
+          else
+            release-plz release-pr --git-token "$GITHUB_TOKEN"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
