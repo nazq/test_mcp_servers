@@ -347,8 +347,8 @@ impl McpTestServer {
         if params.min > params.max {
             return Err("min must be less than or equal to max".to_string());
         }
-        let mut rng = rand::thread_rng();
-        let result = rng.gen_range(params.min..=params.max);
+        let mut rng = rand::rng();
+        let result = rng.random_range(params.min..=params.max);
         Ok(result.to_string())
     }
 
@@ -420,8 +420,8 @@ impl McpTestServer {
     #[tool(description = "Generate random binary data as base64")]
     async fn binary_data(&self, Parameters(params): Parameters<BinaryDataParams>) -> String {
         use rand::Rng;
-        let mut rng = rand::thread_rng();
-        let data: Vec<u8> = (0..params.size_bytes).map(|_| rng.r#gen()).collect();
+        let mut rng = rand::rng();
+        let data: Vec<u8> = (0..params.size_bytes).map(|_| rng.random()).collect();
         BASE64.encode(&data)
     }
 }

@@ -43,14 +43,14 @@ anyhow = "1"
 uuid = { version = "1", features = ["v4"] }
 base64 = "0.22"
 sha2 = "0.10"
-rand = "0.8"
+rand = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
 subtle = "2.6"
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = ["json"] }
 tokio-test = "0.4"
-eventsource-client = "0.13"
+eventsource-client = "0.15"
 
 [profile.release]
 lto = true
