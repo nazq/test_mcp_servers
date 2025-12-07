@@ -29,10 +29,27 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Get latest tag
+        id: latest-tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if [ -n "$TAG" ]; then
+            echo "Found latest tag: $TAG"
+          else
+            echo "No tags found"
+          fi
+
+      - name: Checkout tag for comparison
+        if: steps.latest-tag.outputs.tag != ''
+        run: |
+          git worktree add ../release-ref ${{ steps.latest-tag.outputs.tag }}
+
       - name: Run release-plz release-pr
         uses: release-plz/action@v0.5
         with:
           command: release-pr
+          registry_manifest_path: ${{ steps.latest-tag.outputs.tag != '' && '../release-ref/Cargo.toml' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
