@@ -176,7 +176,7 @@ mod resources_compliance {
             "test://dynamic/timestamp",
         ];
 
-        for uri in &test_uris {
+        for uri in test_uris {
             let request = ReadResourceRequestParam {
                 uri: uri.to_string(),
             };

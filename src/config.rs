@@ -101,10 +101,18 @@ mod tests {
 
     #[test]
     fn test_config_clone() {
-        let config = Config::default();
+        use std::net::{IpAddr, Ipv4Addr};
+
+        let config = Config {
+            api_key: Some("test-key".to_string()),
+            ..Default::default()
+        };
         let cloned = config.clone();
-        assert_eq!(config.port, cloned.port);
-        assert_eq!(config.host, cloned.host);
+        // Verify clone is independent
+        drop(config);
+        assert_eq!(cloned.port, 3000);
+        assert_eq!(cloned.host, IpAddr::V4(Ipv4Addr::UNSPECIFIED));
+        assert_eq!(cloned.api_key, Some("test-key".to_string()));
     }
 
     #[test]
