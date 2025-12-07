@@ -1,36 +1,54 @@
+# release-plz configuration
+# https://release-plz.dev/docs/config
+
 [workspace]
-# Enable changelog generation
-changelog_update = true
-changelog_path = "CHANGELOG.md"
+# Don't publish to crates.io - we only use GitHub releases for Docker image tagging
+publish = false
 
-# Git configuration
-git_release_enable = true
-git_tag_enable = true
-
-# GitHub release configuration
-release = true
-publish = false  # We handle publishing in the release workflow
+# PR title format
+pr_name = "chore: release"
 
 # Changelog configuration
-changelog_config = "changelog.toml"
+changelog_update = true
 
-# PR configuration
-pr_labels = ["release", "automated"]
+[changelog]
+# Changelog sections based on conventional commits
+header = """# Changelog
+
+All notable changes to this project will be documented in this file.
+"""
+
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | upper_first }}
+    {% for commit in commits %}
+        - {{ commit.message | upper_first }}\
+            {% if commit.scope %} *({{ commit.scope }})*{% endif %}\
+            {% if commit.breaking %} **BREAKING**{% endif %}\
+    {% endfor %}
+{% endfor %}\n
+"""
+
+commit_parsers = [
+    { message = "^feat", group = "Features" },
+    { message = "^fix", group = "Bug Fixes" },
+    { message = "^perf", group = "Performance" },
+    { message = "^refactor", group = "Refactoring" },
+    { message = "^doc", group = "Documentation" },
+    { message = "^test", group = "Testing" },
+    { message = "^ci", group = "CI/CD" },
+    { message = "^deps", group = "Dependencies" },
+    { message = "^chore", skip = true },
+]
 
 [[package]]
 name = "mcp-test-server"
-
-# Changelog settings
-changelog_include = [
-    "feat",
-    "fix",
-    "perf",
-    "refactor",
-    "docs",
-    "test",
-    "build",
-    "ci",
-]
-
-# Semver increment rules
-semver_check = true
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+git_release_enable = true
+git_release_name = "v{{ version }}"
