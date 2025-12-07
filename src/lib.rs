@@ -14,7 +14,7 @@
 //! - Full MCP 2025-11-25 specification compliance
 //! - Dual transport: SSE (`/sse`, `/message`) and Streamable HTTP (`/mcp`)
 //! - API key authentication via `Authorization: Bearer` header
-//! - 25 tools for testing (math, string, encoding, utility, testing)
+//! - 26 tools for testing (math, string, encoding, utility, testing)
 //! - 8 resources (static and dynamic) with subscription support
 //! - 5 prompts with argument validation
 //! - Auto-completion for prompt arguments

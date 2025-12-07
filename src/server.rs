@@ -424,6 +424,12 @@ impl McpTestServer {
         let data: Vec<u8> = (0..params.size_bytes).map(|_| rng.random()).collect();
         BASE64.encode(&data)
     }
+
+    /// No-operation tool for testing tool invocation without side effects.
+    #[tool(description = "No-op tool that returns immediately")]
+    async fn noop(&self) -> String {
+        "ok".to_string()
+    }
 }
 
 #[tool_handler(router = self.tool_router)]
