@@ -40,7 +40,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     # Only run when merging a release-plz PR
-    if: startsWith(github.event.head_commit.message, 'chore: release')
+    if: "startsWith(github.event.head_commit.message, 'chore: release')"
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
