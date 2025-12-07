@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   release-pr:
-    name: Create Release PR
+    name: Create/Update Release PR
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -34,9 +34,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Only cut a release when the release PR is merged
+  # This is detected by checking if the commit message matches release-plz pattern
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    # Only run when merging a release-plz PR
+    if: startsWith(github.event.head_commit.message, 'chore: release')
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
