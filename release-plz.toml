@@ -1,0 +1,36 @@
+[workspace]
+# Enable changelog generation
+changelog_update = true
+changelog_path = "CHANGELOG.md"
+
+# Git configuration
+git_release_enable = true
+git_tag_enable = true
+
+# GitHub release configuration
+release = true
+publish = false  # We handle publishing in the release workflow
+
+# Changelog configuration
+changelog_config = "changelog.toml"
+
+# PR configuration
+pr_labels = ["release", "automated"]
+
+[[package]]
+name = "mcp-test-server"
+
+# Changelog settings
+changelog_include = [
+    "feat",
+    "fix",
+    "perf",
+    "refactor",
+    "docs",
+    "test",
+    "build",
+    "ci",
+]
+
+# Semver increment rules
+semver_check = true

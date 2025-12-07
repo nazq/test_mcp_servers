@@ -1,0 +1,39 @@
+# Git
+.git/
+.gitignore
+.github/
+
+# Rust build artifacts
+target/
+**/*.rs.bk
+*.pdb
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# CI/CD
+.github/
+*.yml
+*.yaml
+!Cargo.toml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+tests/
+*.test
+coverage/
+
+# Misc
+.DS_Store
+Thumbs.db
+.env
+.env.*
+*.log
