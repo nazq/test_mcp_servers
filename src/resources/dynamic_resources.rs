@@ -105,9 +105,9 @@ pub fn get_random_resource() -> Resource {
 #[must_use]
 pub fn get_random_content() -> ResourceContents {
     use rand::Rng;
-    let mut rng = rand::thread_rng();
-    let random_number: u64 = rng.r#gen();
-    let random_float: f64 = rng.r#gen();
+    let mut rng = rand::rng();
+    let random_number: u64 = rng.random();
+    let random_float: f64 = rng.random();
 
     ResourceContents::TextResourceContents {
         uri: "test://dynamic/random".to_string(),
