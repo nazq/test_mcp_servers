@@ -13,9 +13,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Create/update release PR with changelog and version bumps
-  release-pr:
-    name: Release PR
+  release-plz:
+    name: Release-plz
     runs-on: ubuntu-latest
     concurrency:
       group: release-plz-${{ github.ref }}
@@ -29,52 +28,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install release-plz
-        run: cargo install release-plz --locked
-
-      - name: Get latest tag
-        id: latest-tag
-        run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          if [ -n "$TAG" ]; then
-            echo "Found latest tag: $TAG"
-            git worktree add ../release-ref "$TAG"
-          else
-            echo "No tags found"
-          fi
-
-      - name: Run release-plz release-pr
-        run: |
-          if [ -n "${{ steps.latest-tag.outputs.tag }}" ]; then
-            release-plz release-pr --git-token "$GITHUB_TOKEN" --registry-manifest-path ../release-ref/Cargo.toml
-          else
-            release-plz release-pr --git-token "$GITHUB_TOKEN"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Create GitHub releases for any unpublished versions
-  # Only creates a release when Cargo.toml version > latest git tag
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    outputs:
-      releases_created: ${{ steps.release-plz.outputs.releases_created }}
-      releases: ${{ steps.release-plz.outputs.releases }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Run release-plz release
-        id: release-plz
+      - name: Run release-plz
         uses: release-plz/action@v0.5
-        with:
-          command: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
