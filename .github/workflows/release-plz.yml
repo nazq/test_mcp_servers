@@ -53,21 +53,18 @@ jobs:
         id: release-pr
         run: |
           if [ -n "${{ steps.latest-tag.outputs.tag }}" ]; then
-            OUTPUT=$(release-plz release-pr --git-token "$GITHUB_TOKEN" --registry-manifest-path ../release-ref/Cargo.toml -o json 2>&1 || true)
+            release-plz release-pr --git-token "$GITHUB_TOKEN" --registry-manifest-path ../release-ref/Cargo.toml || true
           else
-            OUTPUT=$(release-plz release-pr --git-token "$GITHUB_TOKEN" -o json 2>&1 || true)
+            release-plz release-pr --git-token "$GITHUB_TOKEN" || true
           fi
-          echo "output=$OUTPUT" >> $GITHUB_OUTPUT
-          PR_CREATED=$(echo "$OUTPUT" | jq -r '.prs | length > 0' 2>/dev/null || echo "false")
-          echo "prs_created=$PR_CREATED" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run release-plz release
         id: release-plz
         run: |
-          OUTPUT=$(release-plz release --git-token "$GITHUB_TOKEN" -o json 2>&1 || true)
-          echo "$OUTPUT"
+          OUTPUT=$(release-plz release --git-token "$GITHUB_TOKEN" -o json 2>&1 | grep -E '^\{' || echo '{"releases":[]}')
+          echo "Raw output: $OUTPUT"
           RELEASES=$(echo "$OUTPUT" | jq -c '.releases // []' 2>/dev/null || echo "[]")
           echo "releases=$RELEASES" >> $GITHUB_OUTPUT
           RELEASES_CREATED=$(echo "$RELEASES" | jq 'length > 0' 2>/dev/null || echo "false")
