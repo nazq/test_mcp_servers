@@ -1,4 +1,4 @@
-name: Release
+name: Release-plz
 
 on:
   push:
@@ -19,6 +19,9 @@ jobs:
     concurrency:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
+    outputs:
+      releases_created: ${{ steps.release-plz.outputs.releases_created }}
+      releases: ${{ steps.release-plz.outputs.releases }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -29,6 +32,16 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run release-plz
+        id: release-plz
         uses: release-plz/action@v0.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    name: Publish Docker
+    needs: release-plz
+    if: needs.release-plz.outputs.releases_created == 'true'
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ fromJSON(needs.release-plz.outputs.releases)[0].tag }}
+    secrets: inherit
