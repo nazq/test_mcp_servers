@@ -32,9 +32,46 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Run release-plz
+      - name: Install release-plz
+        uses: taiki-e/install-action@v2
+        with:
+          tool: release-plz
+
+      - name: Get latest tag
+        id: latest-tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if [ -n "$TAG" ]; then
+            echo "Found latest tag: $TAG"
+            git worktree add ../release-ref "$TAG"
+          else
+            echo "No tags found"
+          fi
+
+      - name: Run release-plz release-pr
+        id: release-pr
+        run: |
+          if [ -n "${{ steps.latest-tag.outputs.tag }}" ]; then
+            OUTPUT=$(release-plz release-pr --git-token "$GITHUB_TOKEN" --registry-manifest-path ../release-ref/Cargo.toml -o json 2>&1 || true)
+          else
+            OUTPUT=$(release-plz release-pr --git-token "$GITHUB_TOKEN" -o json 2>&1 || true)
+          fi
+          echo "output=$OUTPUT" >> $GITHUB_OUTPUT
+          PR_CREATED=$(echo "$OUTPUT" | jq -r '.prs | length > 0' 2>/dev/null || echo "false")
+          echo "prs_created=$PR_CREATED" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run release-plz release
         id: release-plz
-        uses: release-plz/action@v0.5
+        run: |
+          OUTPUT=$(release-plz release --git-token "$GITHUB_TOKEN" -o json 2>&1 || true)
+          echo "$OUTPUT"
+          RELEASES=$(echo "$OUTPUT" | jq -c '.releases // []' 2>/dev/null || echo "[]")
+          echo "releases=$RELEASES" >> $GITHUB_OUTPUT
+          RELEASES_CREATED=$(echo "$RELEASES" | jq 'length > 0' 2>/dev/null || echo "false")
+          echo "releases_created=$RELEASES_CREATED" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
