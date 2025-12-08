@@ -20,7 +20,7 @@ The server is containerized and designed to be ephemeral—spin it up, run your 
 ## Features
 
 - **Full MCP 2025-11-25 specification compliance**
-- **Dual transport support**: SSE and Streamable HTTP on a single server
+- **Streamable HTTP transport** (`/mcp` endpoint)
 - **API key authentication** with constant-time comparison
 - **25 tools** for comprehensive testing (math, string, encoding, utility, testing)
 - **8 resources** (static and dynamic) with subscription support
@@ -56,10 +56,6 @@ All configuration is done via environment variables:
 | `MCP_LOG_LEVEL` | `info` | Logging level: `trace`, `debug`, `info`, `warn`, `error` |
 
 ## Endpoints
-
-### SSE Transport
-- `GET /sse` - Opens SSE stream for server-to-client messages
-- `POST /message` - Client-to-server JSON-RPC messages
 
 ### Streamable HTTP Transport
 - `GET /mcp` - Open SSE stream for server-initiated messages
@@ -237,6 +233,16 @@ Contributions welcome! Please ensure:
 2. No clippy warnings (`cargo clippy -- -D warnings`)
 3. Code is formatted (`cargo fmt`)
 4. Coverage doesn't drop below 85%
+
+## Transport Support
+
+This server uses **Streamable HTTP** transport only. SSE transport was deprecated in the
+MCP specification and removed from the rmcp SDK:
+
+- [rmcp PR #561](https://github.com/modelcontextprotocol/rust-sdk/pull/561) - SSE transport deprecated
+- [rmcp PR #562](https://github.com/modelcontextprotocol/rust-sdk/pull/562) - SSE transport removed
+
+If you need SSE transport, use version 0.3.x or earlier of this server.
 
 ## References
 
