@@ -3,6 +3,7 @@
 A comprehensive Model Context Protocol (MCP) test server written in Rust. Built on the [rmcp](https://crates.io/crates/rmcp) SDK, this server provides a complete implementation for testing MCP client libraries.
 
 [![CI](https://github.com/nazq/test_mcp_servers/actions/workflows/ci.yml/badge.svg)](https://github.com/nazq/test_mcp_servers/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/nazq/test_mcp_servers/graph/badge.svg)](https://codecov.io/gh/nazq/test_mcp_servers)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
 ## Purpose
