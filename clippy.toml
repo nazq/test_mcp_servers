@@ -1,0 +1,31 @@
+# Clippy configuration for mcp-test-server
+# See: https://doc.rust-lang.org/clippy/lint_configuration.html
+
+# Cognitive complexity threshold for functions
+cognitive-complexity-threshold = 15
+
+# Disallow certain methods that could lead to issues
+disallowed-methods = [
+    # Use Config struct instead of environment manipulation
+    { path = "std::env::set_var", reason = "Use Config struct for configuration" },
+    { path = "std::env::remove_var", reason = "Use Config struct for configuration" },
+
+    # Use proper error handling instead of process exit
+    { path = "std::process::exit", reason = "Return Result instead of exiting" },
+
+    # Prefer explicit unwrap_or/unwrap_or_else over expect in library code
+    # (commented out - expect is fine with good messages)
+    # { path = "core::option::Option::expect", reason = "Use unwrap_or or unwrap_or_else" },
+]
+
+# Disallow certain types
+disallowed-types = [
+    # Encourage Arc<Mutex> patterns for thread safety
+    # { path = "std::sync::Mutex", reason = "Use tokio::sync::Mutex for async code" },
+]
+
+# Maximum lines in a single function body
+too-many-lines-threshold = 100
+
+# Type complexity threshold
+type-complexity-threshold = 300

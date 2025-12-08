@@ -15,11 +15,8 @@ use rmcp::{
     },
     serde_json::Map,
     tool, tool_handler, tool_router,
-    transport::{
-        sse_server::{SseServer, SseServerConfig},
-        streamable_http_server::{
-            StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
-        },
+    transport::streamable_http_server::{
+        StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -112,18 +109,6 @@ impl McpTestServer {
         // Create cancellation token for graceful shutdown
         let ct = CancellationToken::new();
 
-        // Setup SSE transport
-        let (sse_server, sse_router) = {
-            let config = SseServerConfig {
-                bind: addr,
-                sse_path: "/sse".to_string(),
-                post_path: "/message".to_string(),
-                ct: ct.clone(),
-                sse_keep_alive: Some(std::time::Duration::from_secs(15)),
-            };
-            SseServer::new(config)
-        };
-
         // Setup Streamable HTTP transport
         let session_manager = Arc::new(LocalSessionManager::default());
         let streamable_http_config = StreamableHttpServerConfig {
@@ -141,7 +126,6 @@ impl McpTestServer {
 
         // Build protected routes with auth middleware
         let protected_routes = Router::new()
-            .merge(sse_router)
             .route(
                 "/mcp",
                 axum::routing::get_service(streamable_http_service.clone()),
@@ -166,26 +150,7 @@ impl McpTestServer {
 
         // Bind TCP listener
         let listener = tokio::net::TcpListener::bind(addr).await?;
-        tracing::info!(
-            %addr,
-            "Server listening with SSE (/sse, /message) and Streamable HTTP (/mcp) transports"
-        );
-
-        // Start handling SSE transports
-        let server_for_sse = self.clone();
-        let _sse_ct = ct.clone();
-        tokio::spawn(async move {
-            let mut sse_server = sse_server;
-            while let Some(transport) = sse_server.next_transport().await {
-                let service = server_for_sse.clone();
-                tokio::spawn(async move {
-                    if let Err(e) = rmcp::serve_server(service, transport).await {
-                        tracing::error!("SSE transport error: {}", e);
-                    }
-                });
-            }
-            tracing::info!("SSE server stopped accepting connections");
-        });
+        tracing::info!(%addr, "Server listening on Streamable HTTP (/mcp) transport");
 
         // Setup graceful shutdown
         let shutdown_ct = ct.clone();
@@ -461,8 +426,7 @@ impl ServerHandler for McpTestServer {
             },
             instructions: Some(
                 "A comprehensive MCP test server providing tools, prompts, and resources \
-                 for testing MCP client implementations. This server supports SSE and \
-                 Streamable HTTP transports."
+                 for testing MCP client implementations."
                     .to_string(),
             ),
         }
