@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.2.0] - 2025-12-08
+
+### Bug Fixes
+
+- Use release-plz CLI with registry-manifest-path for unpublished packages
+- Use git tag for release-plz comparison on unpublished packages
+
+### Features
+
+- Add Docker image reference to crate documentation ([#14](https://github.com/nazq/test_mcp_servers/pull/14))
+
 ## [0.1.0] - 2025-12-07
 
 ### 🚀 Features
