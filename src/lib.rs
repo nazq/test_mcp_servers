@@ -3,7 +3,7 @@
 //! This crate provides a complete MCP server implementation for integration testing
 //! of MCP clients. It supports both SSE and Streamable HTTP transports.
 //!
-//! Available as a Docker image: `ghcr.io/nazq/mcp-test-server`
+//! Available as a Docker image: `ghcr.io/nazq/mcp-test-server:latest`
 //!
 //! # Purpose
 //!
