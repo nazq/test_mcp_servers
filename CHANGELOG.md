@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-12-08
+
+### Bug Fixes
+
+- Filter release-plz output for GitHub Actions
+- Use release-plz CLI with registry-manifest-path for unpublished packages
+- Add packages write permission for Docker release
+- Simplify release-plz workflow to use action directly ([#16](https://github.com/nazq/test_mcp_servers/pull/16))
+
+### Features
+
+- Clarify Docker image tag in documentation ([#17](https://github.com/nazq/test_mcp_servers/pull/17))
+
+
 ## [0.2.0] - 2025-12-08
 
 ### Bug Fixes
