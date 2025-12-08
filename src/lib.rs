@@ -1,7 +1,7 @@
 //! MCP Test Server - A full-featured Model Context Protocol test server.
 //!
 //! This crate provides a complete MCP server implementation for integration testing
-//! of MCP clients. It supports both SSE and Streamable HTTP transports.
+//! of MCP clients. It uses Streamable HTTP transport.
 //!
 //! Available as a Docker image: `ghcr.io/nazq/mcp-test-server:latest`
 //!
