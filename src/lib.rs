@@ -14,7 +14,7 @@
 //! # Features
 //!
 //! - Full MCP 2025-11-25 specification compliance
-//! - Dual transport: SSE (`/sse`, `/message`) and Streamable HTTP (`/mcp`)
+//! - Streamable HTTP transport (`/mcp` endpoint)
 //! - API key authentication via `Authorization: Bearer` header
 //! - 26 tools for testing (math, string, encoding, utility, testing)
 //! - 8 resources (static and dynamic) with subscription support
@@ -57,11 +57,13 @@
 
 pub mod auth;
 pub mod config;
+pub mod error;
 pub mod prompts;
 pub mod resources;
 pub mod server;
 pub mod tools;
 
 pub use config::Config;
+pub use error::{Result, ServerError};
 pub use resources::ResourceHandler;
 pub use server::McpTestServer;

@@ -42,35 +42,6 @@ async fn test_server_handles_multiple_concurrent_health_checks() {
 }
 
 #[tokio::test]
-async fn test_sse_endpoint_exists() {
-    common::init_test_tracing();
-
-    let server = TestServer::start().await;
-    let client = reqwest::Client::new();
-
-    // SSE endpoint should respond (even if connection isn't fully established in test)
-    let response = client
-        .get(server.sse_url())
-        .timeout(std::time::Duration::from_secs(1))
-        .send()
-        .await;
-
-    // Should either succeed or timeout waiting for SSE events - not return 404
-    match response {
-        Ok(r) => {
-            // Should be 200 OK with SSE content type
-            assert_eq!(r.status(), reqwest::StatusCode::OK);
-            let content_type = r.headers().get("content-type").unwrap();
-            assert!(content_type.to_str().unwrap().contains("text/event-stream"));
-        }
-        Err(e) => {
-            // Timeout is acceptable for SSE endpoint (waiting for events)
-            assert!(e.is_timeout() || e.is_connect(), "Unexpected error: {e}");
-        }
-    }
-}
-
-#[tokio::test]
 async fn test_mcp_endpoint_exists() {
     common::init_test_tracing();
 
