@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-12-08
+
+### Performance
+
+- Use Swatinem/rust-cache and amd64-only Docker builds
+
+
 ## [0.3.0] - 2025-12-08
 
 ### Bug Fixes
