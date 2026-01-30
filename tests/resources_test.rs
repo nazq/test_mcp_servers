@@ -19,7 +19,8 @@ use rmcp::model::{ReadResourceRequestParam, ResourceContents, SubscribeRequestPa
 #[test]
 fn test_list_static_resources() {
     let resources = list_static_resources();
-    assert_eq!(resources.len(), 4);
+    // 4 original static + 3 UI app resources = 7
+    assert_eq!(resources.len(), 7);
 }
 
 #[test]
@@ -112,6 +113,56 @@ fn test_read_static_resource() {
     assert!(content.is_none());
 }
 
+// UI App resource tests
+
+#[test]
+fn test_read_button_app_resource() {
+    let content = read_static_resource("ui://button/app.html");
+    assert!(content.is_some());
+    match content.unwrap() {
+        ResourceContents::TextResourceContents {
+            text, mime_type, ..
+        } => {
+            assert_eq!(mime_type, Some("text/html;profile=mcp-app".to_string()));
+            assert!(text.contains("McpApp"));
+            assert!(text.contains("ui/initialize"));
+        }
+        ResourceContents::BlobResourceContents { .. } => panic!("Expected text content"),
+    }
+}
+
+#[test]
+fn test_read_form_app_resource() {
+    let content = read_static_resource("ui://form/app.html");
+    assert!(content.is_some());
+    match content.unwrap() {
+        ResourceContents::TextResourceContents {
+            text, mime_type, ..
+        } => {
+            assert_eq!(mime_type, Some("text/html;profile=mcp-app".to_string()));
+            assert!(text.contains("McpApp"));
+            assert!(text.contains("concat"));
+        }
+        ResourceContents::BlobResourceContents { .. } => panic!("Expected text content"),
+    }
+}
+
+#[test]
+fn test_read_carousel_app_resource() {
+    let content = read_static_resource("ui://carousel/app.html");
+    assert!(content.is_some());
+    match content.unwrap() {
+        ResourceContents::TextResourceContents {
+            text, mime_type, ..
+        } => {
+            assert_eq!(mime_type, Some("text/html;profile=mcp-app".to_string()));
+            assert!(text.contains("McpApp"));
+            assert!(text.contains("Carousel"));
+        }
+        ResourceContents::BlobResourceContents { .. } => panic!("Expected text content"),
+    }
+}
+
 // Dynamic resource tests
 
 #[test]
@@ -197,8 +248,8 @@ fn test_resource_handler_list_resources() {
     let handler = ResourceHandler::new();
     let result = handler.list_resources(None).unwrap();
 
-    // 4 static + 3 dynamic = 7 resources
-    assert_eq!(result.resources.len(), 7);
+    // 7 static (4 original + 3 UI apps) + 3 dynamic = 10 resources
+    assert_eq!(result.resources.len(), 10);
 }
 
 #[test]

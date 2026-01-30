@@ -163,6 +163,9 @@ fn is_allowed_origin(origin: &str) -> bool {
     origin.starts_with("http://localhost")
         || origin.starts_with("http://127.0.0.1")
         || origin.starts_with("https://localhost")
+        // Allow VS Code / Electron origins
+        || origin.starts_with("vscode-file://")
+        || origin.starts_with("vscode-webview://")
 }
 
 #[cfg(test)]
@@ -181,6 +184,8 @@ mod tests {
         assert!(is_allowed_origin("http://localhost:3000"));
         assert!(is_allowed_origin("http://127.0.0.1:8080"));
         assert!(is_allowed_origin("https://localhost"));
+        assert!(is_allowed_origin("vscode-file://vscode-app"));
+        assert!(is_allowed_origin("vscode-webview://abc123"));
         assert!(!is_allowed_origin("http://evil.com"));
         assert!(!is_allowed_origin("https://example.com"));
     }

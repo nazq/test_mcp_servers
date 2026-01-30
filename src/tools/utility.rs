@@ -13,9 +13,17 @@ pub struct RandomNumberParams {
 }
 
 /// Parameters for the `random_uuid` tool (no parameters needed).
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize)]
 pub struct RandomUuidParams {}
+super::empty_params_schema!(
+    RandomUuidParams,
+    "Parameters for the `random_uuid` tool (no parameters needed)."
+);
 
 /// Parameters for the `current_time` tool (no parameters needed).
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize)]
 pub struct CurrentTimeParams {}
+super::empty_params_schema!(
+    CurrentTimeParams,
+    "Parameters for the `current_time` tool (no parameters needed)."
+);

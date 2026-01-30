@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Button App</title></head>
+<body style="margin:0;padding:16px;font-family:system-ui;background:#fff">
+  <h3 style="margin:0 0 8px">Interactive Button Test</h3>
+  <p style="color:#555;margin:0 0 8px">Click the button to call the echo tool on the server:</p>
+  <p id="tool-result" style="color:#555;margin:0 0 16px;font-size:14px">Waiting for tool result...</p>
+  <button id="action-btn"
+    style="padding:12px 24px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px">
+    Click Me
+  </button>
+  <p id="status" style="color:#888;margin-top:12px;font-size:14px"></p>
+  <script>
+  // {{MCP_APP_SHIM}}
+  </script>
+  <script>
+    var app = new McpApp('Button App', '1.0.0');
+
+    app.ontoolresult = function(result) {
+      var text = '(no content)';
+      if (result && result.content) {
+        for (var i = 0; i < result.content.length; i++) {
+          if (result.content[i].type === 'text') {
+            text = result.content[i].text;
+            break;
+          }
+        }
+      }
+      document.getElementById('tool-result').textContent = 'Tool result: ' + text;
+    };
+
+    app.connect().then(function() {
+      document.getElementById('status').textContent = 'Connected to host.';
+    });
+
+    document.getElementById('action-btn').addEventListener('click', function() {
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Calling...';
+      btn.style.background = '#6b7280';
+
+      app.callServerTool('echo', { text: 'button_clicked at ' + new Date().toISOString() })
+        .then(function(result) {
+          var text = '(no response)';
+          if (result && result.content) {
+            for (var i = 0; i < result.content.length; i++) {
+              if (result.content[i].type === 'text') {
+                text = result.content[i].text;
+                break;
+              }
+            }
+          }
+          document.getElementById('status').textContent = 'Server replied: ' + text;
+          btn.style.background = '#16a34a';
+          btn.textContent = 'Sent!';
+          btn.disabled = false;
+        })
+        .catch(function(err) {
+          document.getElementById('status').textContent = 'Error: ' + (err.message || JSON.stringify(err));
+          btn.style.background = '#dc2626';
+          btn.textContent = 'Error';
+          btn.disabled = false;
+        });
+    });
+  </script>
+</body>
+</html>

@@ -22,6 +22,7 @@ use rmcp::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio_util::sync::CancellationToken;
+use tower_http::cors::CorsLayer;
 
 use crate::{
     auth::auth_middleware,
@@ -39,9 +40,27 @@ use crate::{
             BinaryDataParams, FailParams, FailWithMessageParams, LargeResponseParams,
             NestedDataParams, SleepParams, SlowEchoParams,
         },
+        ui::{UiResourceButtonParams, UiResourceCarouselParams, UiResourceFormParams},
         utility::{CurrentTimeParams, RandomNumberParams, RandomUuidParams},
     },
 };
+
+/// Build `_meta` for a UI tool linking it to its MCP App resource.
+///
+/// Sets both the new format (`_meta.ui.resourceUri`) and legacy flat key
+/// (`_meta["ui/resourceUri"]`) for backward compatibility with older hosts.
+fn ui_meta(resource_uri: &str) -> rmcp::model::Meta {
+    let mut meta = rmcp::model::Meta::new();
+    meta.insert(
+        "ui".to_string(),
+        serde_json::json!({ "resourceUri": resource_uri }),
+    );
+    meta.insert(
+        "ui/resourceUri".to_string(),
+        serde_json::json!(resource_uri),
+    );
+    meta
+}
 
 /// Helper function to create nested JSON data.
 fn create_nested(depth: usize) -> serde_json::Value {
@@ -113,7 +132,7 @@ impl McpTestServer {
         let session_manager = Arc::new(LocalSessionManager::default());
         let streamable_http_config = StreamableHttpServerConfig {
             sse_keep_alive: Some(std::time::Duration::from_secs(15)),
-            stateful_mode: true,
+            stateful_mode: false,
         };
 
         // Clone self for the service factory closure
@@ -146,7 +165,8 @@ impl McpTestServer {
         // Build the main router combining public and protected routes
         let app = Router::new()
             .route("/health", get(health_check))
-            .merge(protected_routes);
+            .merge(protected_routes)
+            .layer(CorsLayer::permissive());
 
         // Bind TCP listener
         let listener = tokio::net::TcpListener::bind(addr).await?;
@@ -394,6 +414,51 @@ impl McpTestServer {
     #[tool(description = "No-op tool that returns immediately")]
     async fn noop(&self) -> String {
         "ok".to_string()
+    }
+
+    // MCP App tools
+    //
+    // These tools declare `_meta.ui.resourceUri` so MCP Apps-capable hosts
+    // (VS Code Insiders, Claude Desktop) fetch and render the interactive HTML
+    // from the corresponding `ui://` resource via `resources/read`.
+    // The tool itself returns plain text — the host pushes it to the iframe
+    // via `ui/notifications/tool-result`.
+
+    /// Interactive button app — host renders `ui://button/app.html`.
+    #[tool(
+        description = "Returns a single interactive UI button (tests single UI resource rendering)",
+        meta = ui_meta("ui://button/app.html")
+    )]
+    async fn ui_resource_button(
+        &self,
+        Parameters(_params): Parameters<UiResourceButtonParams>,
+    ) -> String {
+        "Button UI ready. Click the button to call the echo tool.".to_string()
+    }
+
+    /// Interactive form app — host renders `ui://form/app.html`.
+    #[tool(
+        description = "Returns a single interactive UI form (tests single UI resource rendering)",
+        meta = ui_meta("ui://form/app.html")
+    )]
+    async fn ui_resource_form(
+        &self,
+        Parameters(_params): Parameters<UiResourceFormParams>,
+    ) -> String {
+        "Form UI ready. Fill in the form and submit to call the concat tool.".to_string()
+    }
+
+    /// Interactive carousel app — host renders `ui://carousel/app.html`.
+    #[tool(
+        description = "Returns 3 interactive UI cards (tests multi-resource carousel rendering)",
+        meta = ui_meta("ui://carousel/app.html")
+    )]
+    async fn ui_resource_carousel(
+        &self,
+        Parameters(_params): Parameters<UiResourceCarouselParams>,
+    ) -> String {
+        "Carousel UI ready. 3 interactive cards loaded. Click a card to call the echo tool."
+            .to_string()
     }
 }
 
@@ -968,5 +1033,36 @@ mod tests {
         assert_eq!(nested["level"], 2);
         assert_eq!(nested["nested"]["level"], 1);
         assert_eq!(nested["nested"]["nested"], "leaf");
+    }
+
+    // =============================================================================
+    // UI RESOURCE TOOL TESTS
+    // =============================================================================
+
+    #[tokio::test]
+    async fn test_ui_resource_button() {
+        let server = test_server();
+        let result = server
+            .ui_resource_button(Parameters(UiResourceButtonParams {}))
+            .await;
+        assert!(result.contains("Button UI ready"));
+    }
+
+    #[tokio::test]
+    async fn test_ui_resource_form() {
+        let server = test_server();
+        let result = server
+            .ui_resource_form(Parameters(UiResourceFormParams {}))
+            .await;
+        assert!(result.contains("Form UI ready"));
+    }
+
+    #[tokio::test]
+    async fn test_ui_resource_carousel() {
+        let server = test_server();
+        let result = server
+            .ui_resource_carousel(Parameters(UiResourceCarouselParams {}))
+            .await;
+        assert!(result.contains("Carousel UI ready"));
     }
 }
