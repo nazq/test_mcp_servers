@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:16px;font-family:system-ui;background:#fff">
+  <h3 style="margin:0 0 8px">Interactive Button Test</h3>
+  <p style="color:#555;margin:0 0 16px">Click the button to fire a UIAction intent:</p>
+  <button id="action-btn"
+    style="padding:12px 24px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;font-size:16px">
+    Click Me
+  </button>
+  <p id="status" style="color:#888;margin-top:12px;font-size:14px">Waiting for click...</p>
+  <script>
+    document.getElementById('action-btn').addEventListener('click', function() {
+      window.parent.postMessage({
+        type: 'intent',
+        payload: {
+          intent: 'button_clicked',
+          params: { clicked: true, timestamp: Date.now() }
+        }
+      }, '*');
+      document.getElementById('status').textContent =
+        'Action sent! (If nothing happens in the chat, the bug is confirmed)';
+      this.style.background = '#16a34a';
+      this.textContent = 'Sent!';
+    });
+  </script>
+</body>
+</html>

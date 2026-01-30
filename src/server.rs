@@ -39,6 +39,7 @@ use crate::{
             BinaryDataParams, FailParams, FailWithMessageParams, LargeResponseParams,
             NestedDataParams, SleepParams, SlowEchoParams,
         },
+        ui::{UiResourceButtonParams, UiResourceCarouselParams, UiResourceFormParams},
         utility::{CurrentTimeParams, RandomNumberParams, RandomUuidParams},
     },
 };
@@ -394,6 +395,80 @@ impl McpTestServer {
     #[tool(description = "No-op tool that returns immediately")]
     async fn noop(&self) -> String {
         "ok".to_string()
+    }
+
+    // UI Resource tools
+
+    /// Return a single interactive UI button as an embedded resource.
+    ///
+    /// This triggers the single-resource rendering path (`ToolCallInfo`)
+    /// which has the `console.log` bug — clicking the button does nothing.
+    #[tool(
+        description = "Returns a single interactive UI button (tests single UI resource rendering)"
+    )]
+    async fn ui_resource_button(
+        &self,
+        Parameters(_params): Parameters<UiResourceButtonParams>,
+    ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+        let html = include_str!("../ui_templates/button.html");
+        let resource = rmcp::model::ResourceContents::TextResourceContents {
+            uri: "ui://button".into(),
+            mime_type: Some("text/html".into()),
+            text: html.to_string(),
+            meta: None,
+        };
+        Ok(rmcp::model::CallToolResult::success(vec![
+            rmcp::model::Content::resource(resource),
+        ]))
+    }
+
+    /// Return a single interactive UI form as an embedded resource.
+    ///
+    /// Like `ui_resource_button`, this triggers the single-resource path
+    /// and the `console.log` bug — form submission does nothing.
+    #[tool(
+        description = "Returns a single interactive UI form (tests single UI resource rendering)"
+    )]
+    async fn ui_resource_form(
+        &self,
+        Parameters(_params): Parameters<UiResourceFormParams>,
+    ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+        let html = include_str!("../ui_templates/form.html");
+        let resource = rmcp::model::ResourceContents::TextResourceContents {
+            uri: "ui://form".into(),
+            mime_type: Some("text/html".into()),
+            text: html.to_string(),
+            meta: None,
+        };
+        Ok(rmcp::model::CallToolResult::success(vec![
+            rmcp::model::Content::resource(resource),
+        ]))
+    }
+
+    /// Return multiple UI cards as embedded resources (carousel).
+    ///
+    /// This triggers the multi-resource rendering path (`UIResourceCarousel`)
+    /// which correctly calls `handleUIAction` — clicking cards works.
+    #[tool(
+        description = "Returns 3 interactive UI cards (tests multi-resource carousel rendering)"
+    )]
+    async fn ui_resource_carousel(
+        &self,
+        Parameters(_params): Parameters<UiResourceCarouselParams>,
+    ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData> {
+        let card_template = include_str!("../ui_templates/card.html");
+        let mut content = Vec::new();
+        for i in 1..=3 {
+            let html = card_template.replace("{{NUMBER}}", &i.to_string());
+            let resource = rmcp::model::ResourceContents::TextResourceContents {
+                uri: format!("ui://card-{i}"),
+                mime_type: Some("text/html".into()),
+                text: html,
+                meta: None,
+            };
+            content.push(rmcp::model::Content::resource(resource));
+        }
+        Ok(rmcp::model::CallToolResult::success(content))
     }
 }
 
@@ -968,5 +1043,42 @@ mod tests {
         assert_eq!(nested["level"], 2);
         assert_eq!(nested["nested"]["level"], 1);
         assert_eq!(nested["nested"]["nested"], "leaf");
+    }
+
+    // =============================================================================
+    // UI RESOURCE TOOL TESTS
+    // =============================================================================
+
+    #[tokio::test]
+    async fn test_ui_resource_button() {
+        let server = test_server();
+        let result = server
+            .ui_resource_button(Parameters(UiResourceButtonParams {}))
+            .await
+            .unwrap();
+        assert_eq!(result.content.len(), 1);
+        assert_eq!(result.is_error, Some(false));
+    }
+
+    #[tokio::test]
+    async fn test_ui_resource_form() {
+        let server = test_server();
+        let result = server
+            .ui_resource_form(Parameters(UiResourceFormParams {}))
+            .await
+            .unwrap();
+        assert_eq!(result.content.len(), 1);
+        assert_eq!(result.is_error, Some(false));
+    }
+
+    #[tokio::test]
+    async fn test_ui_resource_carousel() {
+        let server = test_server();
+        let result = server
+            .ui_resource_carousel(Parameters(UiResourceCarouselParams {}))
+            .await
+            .unwrap();
+        assert_eq!(result.content.len(), 3);
+        assert_eq!(result.is_error, Some(false));
     }
 }
