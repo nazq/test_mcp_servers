@@ -22,6 +22,7 @@ use rmcp::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio_util::sync::CancellationToken;
+use tower_http::cors::CorsLayer;
 
 use crate::{
     auth::auth_middleware,
@@ -114,7 +115,7 @@ impl McpTestServer {
         let session_manager = Arc::new(LocalSessionManager::default());
         let streamable_http_config = StreamableHttpServerConfig {
             sse_keep_alive: Some(std::time::Duration::from_secs(15)),
-            stateful_mode: true,
+            stateful_mode: false,
         };
 
         // Clone self for the service factory closure
@@ -147,7 +148,8 @@ impl McpTestServer {
         // Build the main router combining public and protected routes
         let app = Router::new()
             .route("/health", get(health_check))
-            .merge(protected_routes);
+            .merge(protected_routes)
+            .layer(CorsLayer::permissive());
 
         // Bind TCP listener
         let listener = tokio::net::TcpListener::bind(addr).await?;
