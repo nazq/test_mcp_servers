@@ -13,4 +13,5 @@ pub mod encoding;
 pub mod math;
 pub mod string;
 pub mod testing;
+pub mod ui;
 pub mod utility;
