@@ -11,8 +11,12 @@ pub struct SleepParams {
 }
 
 /// Parameters for the fail tool (no parameters needed).
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize)]
 pub struct FailParams {}
+super::empty_params_schema!(
+    FailParams,
+    "Parameters for the fail tool (no parameters needed)."
+);
 
 /// Parameters for the `fail_with_message` tool.
 #[derive(Debug, Deserialize, JsonSchema)]

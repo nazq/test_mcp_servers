@@ -15,6 +15,7 @@ RUN mkdir src && \
 
 # Copy actual source and rebuild
 COPY src ./src
+COPY ui_templates ./ui_templates
 RUN touch src/main.rs && cargo build --release
 
 FROM alpine:3.23

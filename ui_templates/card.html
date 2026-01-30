@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Carousel App</title></head>
+<body style="margin:0;padding:16px;font-family:system-ui;background:#fff">
+  <h3 style="margin:0 0 12px">Carousel Cards</h3>
+  <p id="tool-result" style="color:#555;margin:0 0 12px;font-size:14px">Waiting for tool result...</p>
+  <div id="cards" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+  <p id="status" style="color:#888;margin-top:12px;font-size:14px"></p>
+  <script>
+  // {{MCP_APP_SHIM}}
+  </script>
+  <script>
+    var app = new McpApp('Carousel App', '1.0.0');
+
+    app.ontoolresult = function(result) {
+      var text = '(no content)';
+      if (result && result.content) {
+        for (var i = 0; i < result.content.length; i++) {
+          if (result.content[i].type === 'text') {
+            text = result.content[i].text;
+            break;
+          }
+        }
+      }
+      document.getElementById('tool-result').textContent = 'Tool result: ' + text;
+    };
+
+    function createCard(n) {
+      var card = document.createElement('div');
+      card.style.cssText = 'border:1px solid #e5e7eb;border-radius:12px;padding:16px;width:180px';
+      card.innerHTML =
+        '<h4 style="margin:0 0 8px;color:#111">Card ' + n + '</h4>' +
+        '<p style="color:#555;margin:0 0 12px;font-size:13px">Carousel card #' + n + '. Click to select.</p>' +
+        '<button style="padding:8px 16px;background:#ea580c;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px">' +
+        'Select Card ' + n + '</button>';
+
+      var btn = card.querySelector('button');
+      btn.addEventListener('click', function() {
+        app.callServerTool('echo', { text: 'card_' + n + '_selected' })
+          .then(function(result) {
+            var text = '(no response)';
+            if (result && result.content) {
+              for (var i = 0; i < result.content.length; i++) {
+                if (result.content[i].type === 'text') {
+                  text = result.content[i].text;
+                  break;
+                }
+              }
+            }
+            document.getElementById('status').textContent = 'Selected: ' + text;
+            btn.style.background = '#16a34a';
+            btn.textContent = 'Selected!';
+          })
+          .catch(function(err) {
+            document.getElementById('status').textContent = 'Error: ' + (err.message || JSON.stringify(err));
+          });
+      });
+      return card;
+    }
+
+    var container = document.getElementById('cards');
+    for (var i = 1; i <= 3; i++) {
+      container.appendChild(createCard(i));
+    }
+
+    app.connect().then(function() {
+      document.getElementById('status').textContent = 'Connected to host.';
+    });
+  </script>
+</body>
+</html>

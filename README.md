@@ -14,6 +14,7 @@ Use cases:
 - **Integration testing** with [Testcontainers](https://testcontainers.com/) or similar container orchestration
 - **CI/CD pipelines** for MCP client libraries
 - **Local development** when building MCP clients
+- **MCP Apps testing** — verify your host renders interactive tool UIs via `_meta.ui.resourceUri`
 - **Protocol compliance verification** against the MCP 2025-11-25 specification
 
 The server is containerized and designed to be ephemeral—spin it up, run your tests, tear it down.
@@ -22,9 +23,10 @@ The server is containerized and designed to be ephemeral—spin it up, run your 
 
 - **Full MCP 2025-11-25 specification compliance**
 - **Streamable HTTP transport** (`/mcp` endpoint)
+- **[MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps) support** — interactive UI tools with `_meta.ui.resourceUri`, served via `resources/read`
 - **API key authentication** with constant-time comparison
-- **25 tools** for comprehensive testing (math, string, encoding, utility, testing)
-- **8 resources** (static and dynamic) with subscription support
+- **28 tools** for comprehensive testing (math, string, encoding, utility, testing, MCP Apps)
+- **11 resources** (static, dynamic, and `ui://` app resources) with subscription support
 - **5 prompts** with argument validation
 - **Auto-completion** for prompt arguments and resource URIs
 - **Logging level control** via MCP protocol
@@ -115,6 +117,18 @@ The server provides 25 tools organized by category:
 | `large_response` | Generate large text payload |
 | `binary_data` | Generate random binary data (base64) |
 
+### MCP App Tools
+
+These tools implement the [MCP Apps extension](https://modelcontextprotocol.io/docs/extensions/apps). Each declares `_meta.ui.resourceUri` on the tool description, telling compatible hosts (VS Code Insiders, Claude Desktop) to fetch interactive HTML via `resources/read` and render it in a sandboxed iframe. The tool result is plain text — the UI loads independently.
+
+| Tool | `resourceUri` | Description |
+|------|---------------|-------------|
+| `ui_resource_button` | `ui://button/app.html` | Single button that calls the `echo` tool via JSON-RPC bridge |
+| `ui_resource_form` | `ui://form/app.html` | Form that calls the `concat` tool via JSON-RPC bridge |
+| `ui_resource_carousel` | `ui://carousel/app.html` | 3-card carousel, each card calls `echo` via JSON-RPC bridge |
+
+The HTML templates include a JSON-RPC shim (`mcp-app-shim.js`) that handles `window.postMessage` ↔ host bridging per the MCP Apps spec.
+
 ## Resources
 
 ### Static Resources
@@ -124,6 +138,13 @@ The server provides 25 tools organized by category:
 | `test://static/data.json` | application/json | JSON data |
 | `test://static/image.png` | image/png | Base64-encoded PNG |
 | `test://static/large.txt` | text/plain | Large file (>10KB) |
+
+### MCP App Resources
+| URI | Type | Description |
+|-----|------|-------------|
+| `ui://button/app.html` | application/x-mcp-app+html | Interactive button app |
+| `ui://form/app.html` | application/x-mcp-app+html | Interactive form app |
+| `ui://carousel/app.html` | application/x-mcp-app+html | Interactive 3-card carousel app |
 
 ### Dynamic Resources
 | URI | Type | Description |
@@ -248,4 +269,5 @@ If you need SSE transport, use version 0.3.x or earlier of this server.
 ## References
 
 - [MCP Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25)
+- [MCP Apps Extension](https://modelcontextprotocol.io/docs/extensions/apps)
 - [rmcp crate](https://crates.io/crates/rmcp)
