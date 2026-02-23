@@ -9,7 +9,7 @@ use rand::Rng;
 use rmcp::{
     handler::server::{ServerHandler, router::tool::ToolRouter, wrapper::Parameters},
     model::{
-        CompleteResult, CompletionInfo, Implementation, ListResourceTemplatesResult,
+        CompleteResult, CompletionInfo, Icon, Implementation, ListResourceTemplatesResult,
         ListResourcesResult, ProtocolVersion, ReadResourceResult, Reference, ServerCapabilities,
         ServerInfo,
     },
@@ -487,7 +487,11 @@ impl ServerHandler for McpTestServer {
                     "Comprehensive MCP test server for validating client implementations."
                         .to_string(),
                 ),
-                icons: None,
+                icons: Some(vec![Icon {
+                    src: crate::icons::SERVER_ICON_SVG.to_string(),
+                    mime_type: Some("image/svg+xml".to_string()),
+                    sizes: Some(vec!["any".to_string()]),
+                }]),
                 website_url: Some("https://github.com/nazq/test_mcp_servers".to_string()),
             },
             instructions: Some(

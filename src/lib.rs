@@ -58,6 +58,7 @@
 pub mod auth;
 pub mod config;
 pub mod error;
+pub mod icons;
 pub mod prompts;
 pub mod resources;
 pub mod server;
