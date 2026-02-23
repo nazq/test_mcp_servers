@@ -10,10 +10,9 @@ use rmcp::{
     handler::server::{ServerHandler, router::tool::ToolRouter, wrapper::Parameters},
     model::{
         CompleteResult, CompletionInfo, Implementation, ListResourceTemplatesResult,
-        ListResourcesResult, PromptsCapability, ProtocolVersion, ReadResourceResult, Reference,
-        ResourcesCapability, ServerCapabilities, ServerInfo, ToolsCapability,
+        ListResourcesResult, ProtocolVersion, ReadResourceResult, Reference, ServerCapabilities,
+        ServerInfo,
     },
-    serde_json::Map,
     tool, tool_handler, tool_router,
     transport::streamable_http_server::{
         StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
@@ -132,7 +131,9 @@ impl McpTestServer {
         let session_manager = Arc::new(LocalSessionManager::default());
         let streamable_http_config = StreamableHttpServerConfig {
             sse_keep_alive: Some(std::time::Duration::from_secs(15)),
+            sse_retry: Some(std::time::Duration::from_secs(3)),
             stateful_mode: false,
+            cancellation_token: ct.clone(),
         };
 
         // Clone self for the service factory closure
@@ -466,28 +467,28 @@ impl McpTestServer {
 impl ServerHandler for McpTestServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
-            protocol_version: ProtocolVersion::default(),
-            capabilities: ServerCapabilities {
-                experimental: None,
-                logging: Some(Map::new()),
-                completions: Some(Map::new()),
-                prompts: Some(PromptsCapability {
-                    list_changed: Some(true),
-                }),
-                resources: Some(ResourcesCapability {
-                    subscribe: Some(true),
-                    list_changed: Some(true),
-                }),
-                tools: Some(ToolsCapability {
-                    list_changed: Some(true),
-                }),
-            },
+            protocol_version: ProtocolVersion::LATEST,
+            capabilities: ServerCapabilities::builder()
+                .enable_tools()
+                .enable_tool_list_changed()
+                .enable_prompts()
+                .enable_prompts_list_changed()
+                .enable_resources()
+                .enable_resources_list_changed()
+                .enable_resources_subscribe()
+                .enable_logging()
+                .enable_completions()
+                .build(),
             server_info: Implementation {
                 name: "mcp-test-server".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 title: Some("MCP Test Server".to_string()),
+                description: Some(
+                    "Comprehensive MCP test server for validating client implementations."
+                        .to_string(),
+                ),
                 icons: None,
-                website_url: Some("https://github.com/peg-labs/mcp-test-server".to_string()),
+                website_url: Some("https://github.com/nazq/test_mcp_servers".to_string()),
             },
             instructions: Some(
                 "A comprehensive MCP test server providing tools, prompts, and resources \
@@ -499,7 +500,7 @@ impl ServerHandler for McpTestServer {
 
     async fn list_prompts(
         &self,
-        _request: Option<rmcp::model::PaginatedRequestParam>,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
         context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<rmcp::model::ListPromptsResult, rmcp::ErrorData> {
         self.list_prompts_impl(context)
@@ -507,7 +508,7 @@ impl ServerHandler for McpTestServer {
 
     async fn get_prompt(
         &self,
-        request: rmcp::model::GetPromptRequestParam,
+        request: rmcp::model::GetPromptRequestParams,
         context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<rmcp::model::GetPromptResult, rmcp::ErrorData> {
         self.get_prompt_impl(request, context)
@@ -515,7 +516,7 @@ impl ServerHandler for McpTestServer {
 
     async fn list_resources(
         &self,
-        request: Option<rmcp::model::PaginatedRequestParam>,
+        request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<ListResourcesResult, rmcp::ErrorData> {
         self.resource_handler.list_resources(request)
@@ -523,7 +524,7 @@ impl ServerHandler for McpTestServer {
 
     async fn list_resource_templates(
         &self,
-        request: Option<rmcp::model::PaginatedRequestParam>,
+        request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<ListResourceTemplatesResult, rmcp::ErrorData> {
         self.resource_handler.list_resource_templates(request)
@@ -531,7 +532,7 @@ impl ServerHandler for McpTestServer {
 
     async fn read_resource(
         &self,
-        request: rmcp::model::ReadResourceRequestParam,
+        request: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<ReadResourceResult, rmcp::ErrorData> {
         self.resource_handler.read_resource(&request)
@@ -539,7 +540,7 @@ impl ServerHandler for McpTestServer {
 
     async fn subscribe(
         &self,
-        request: rmcp::model::SubscribeRequestParam,
+        request: rmcp::model::SubscribeRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<(), rmcp::ErrorData> {
         self.resource_handler.subscribe(&request)
@@ -547,7 +548,7 @@ impl ServerHandler for McpTestServer {
 
     async fn unsubscribe(
         &self,
-        request: rmcp::model::UnsubscribeRequestParam,
+        request: rmcp::model::UnsubscribeRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<(), rmcp::ErrorData> {
         self.resource_handler.unsubscribe(&request)
@@ -555,7 +556,7 @@ impl ServerHandler for McpTestServer {
 
     async fn complete(
         &self,
-        request: rmcp::model::CompleteRequestParam,
+        request: rmcp::model::CompleteRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<CompleteResult, rmcp::ErrorData> {
         // Provide completions based on the reference type and argument
@@ -628,7 +629,7 @@ impl ServerHandler for McpTestServer {
 
     async fn set_level(
         &self,
-        request: rmcp::model::SetLevelRequestParam,
+        request: rmcp::model::SetLevelRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<(), rmcp::ErrorData> {
         use std::sync::atomic::Ordering;

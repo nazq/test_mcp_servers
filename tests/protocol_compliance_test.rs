@@ -5,7 +5,7 @@
 
 use mcp_test_server::prompts::templates::{generate_prompt, get_all_prompts};
 use mcp_test_server::resources::{ResourceHandler, dynamic_resources, static_resources};
-use rmcp::model::{ReadResourceRequestParam, SubscribeRequestParam};
+use rmcp::model::{ReadResourceRequestParams, SubscribeRequestParams};
 use std::collections::HashMap;
 
 // =============================================================================
@@ -177,8 +177,9 @@ mod resources_compliance {
         ];
 
         for uri in test_uris {
-            let request = ReadResourceRequestParam {
+            let request = ReadResourceRequestParams {
                 uri: uri.to_string(),
+                meta: None,
             };
             let result = handler.read_resource(&request).unwrap();
 
@@ -210,9 +211,9 @@ mod resources_compliance {
     #[test]
     fn test_unknown_resource_returns_error() {
         let handler = ResourceHandler::new();
-        let request = ReadResourceRequestParam {
+        let request = ReadResourceRequestParams {
             uri: "test://nonexistent/resource".to_string(),
-        };
+        meta: None, };
 
         let result = handler.read_resource(&request);
         assert!(result.is_err(), "Unknown resource should return error");
@@ -238,8 +239,9 @@ mod resources_compliance {
     #[test]
     fn test_subscription_to_supported_resource_succeeds() {
         let handler = ResourceHandler::new();
-        let request = SubscribeRequestParam {
+        let request = SubscribeRequestParams {
             uri: "test://dynamic/random".to_string(),
+            meta: None,
         };
 
         let result = handler.subscribe(&request);
@@ -253,8 +255,9 @@ mod resources_compliance {
     #[test]
     fn test_subscription_to_non_subscribable_fails() {
         let handler = ResourceHandler::new();
-        let request = SubscribeRequestParam {
+        let request = SubscribeRequestParams {
             uri: "test://static/hello.txt".to_string(),
+            meta: None,
         };
 
         let result = handler.subscribe(&request);
@@ -268,9 +271,9 @@ mod resources_compliance {
     #[test]
     fn test_content_has_uri_and_mimetype() {
         let handler = ResourceHandler::new();
-        let request = ReadResourceRequestParam {
+        let request = ReadResourceRequestParams {
             uri: "test://static/hello.txt".to_string(),
-        };
+        meta: None, };
 
         let result = handler.read_resource(&request).unwrap();
 
@@ -479,7 +482,7 @@ mod capability_compliance {
 
 mod pagination_compliance {
     use mcp_test_server::resources::ResourceHandler;
-    use rmcp::model::PaginatedRequestParam;
+    use rmcp::model::PaginatedRequestParams;
 
     /// Spec: "supports pagination with optional cursor parameter"
     #[test]
@@ -491,7 +494,7 @@ mod pagination_compliance {
         assert!(result.is_ok());
 
         // Should accept Some cursor (even if not used)
-        let result = handler.list_resources(Some(PaginatedRequestParam { cursor: None }));
+        let result = handler.list_resources(Some(PaginatedRequestParams { cursor: None, meta: None }));
         assert!(result.is_ok());
     }
 
@@ -545,9 +548,9 @@ mod error_handling_compliance {
     #[test]
     fn test_invalid_resource_uri_returns_error() {
         let handler = ResourceHandler::new();
-        let request = ReadResourceRequestParam {
+        let request = ReadResourceRequestParams {
             uri: "invalid://not/a/valid/resource".to_string(),
-        };
+        meta: None, };
 
         let result = handler.read_resource(&request);
         assert!(result.is_err(), "Invalid resource URI should return error");

@@ -21,6 +21,7 @@ pub fn get_all_prompts() -> Vec<Prompt> {
                 required: Some(true),
             }]),
             icons: None,
+            meta: None,
         },
         Prompt {
             name: "code_review".to_string(),
@@ -41,6 +42,7 @@ pub fn get_all_prompts() -> Vec<Prompt> {
                 },
             ]),
             icons: None,
+            meta: None,
         },
         Prompt {
             name: "summarize".to_string(),
@@ -53,6 +55,7 @@ pub fn get_all_prompts() -> Vec<Prompt> {
                 required: Some(true),
             }]),
             icons: None,
+            meta: None,
         },
         Prompt {
             name: "translate".to_string(),
@@ -73,6 +76,7 @@ pub fn get_all_prompts() -> Vec<Prompt> {
                 },
             ]),
             icons: None,
+            meta: None,
         },
         Prompt {
             name: "with_resource".to_string(),
@@ -80,6 +84,7 @@ pub fn get_all_prompts() -> Vec<Prompt> {
             description: Some("Prompt that references an embedded resource".to_string()),
             arguments: Some(vec![]),
             icons: None,
+            meta: None,
         },
     ]
 }

@@ -13,6 +13,7 @@ pub fn get_hello_resource() -> Resource {
         mime_type: Some("text/plain".to_string()),
         size: Some(13),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -39,6 +40,7 @@ pub fn get_data_json_resource() -> Resource {
         mime_type: Some("application/json".to_string()),
         size: Some(49),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -65,6 +67,7 @@ pub fn get_image_png_resource() -> Resource {
         mime_type: Some("image/png".to_string()),
         size: Some(68),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -95,6 +98,7 @@ pub fn get_large_txt_resource() -> Resource {
         mime_type: Some("text/plain".to_string()),
         size: Some(11_100),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -137,6 +141,7 @@ pub fn get_button_app_resource() -> Resource {
         mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -165,6 +170,7 @@ pub fn get_form_app_resource() -> Resource {
         mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -193,6 +199,7 @@ pub fn get_carousel_app_resource() -> Resource {
         mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }

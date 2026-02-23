@@ -5,9 +5,9 @@ use std::sync::Arc;
 use rmcp::{
     ErrorData,
     model::{
-        AnnotateAble, ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParam,
-        RawResourceTemplate, ReadResourceRequestParam, ReadResourceResult, SubscribeRequestParam,
-        UnsubscribeRequestParam,
+        AnnotateAble, ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams,
+        RawResourceTemplate, ReadResourceRequestParams, ReadResourceResult, SubscribeRequestParams,
+        UnsubscribeRequestParams,
     },
 };
 
@@ -41,7 +41,7 @@ impl ResourceHandler {
     /// for API consistency with the MCP protocol.
     pub fn list_resources(
         &self,
-        _request: Option<PaginatedRequestParam>,
+        _request: Option<PaginatedRequestParams>,
     ) -> Result<ListResourcesResult, ErrorData> {
         let mut resources = Vec::new();
 
@@ -57,6 +57,7 @@ impl ResourceHandler {
         Ok(ListResourcesResult {
             resources,
             next_cursor: None,
+            meta: None,
         })
     }
 
@@ -68,7 +69,7 @@ impl ResourceHandler {
     /// for API consistency with the MCP protocol.
     pub fn list_resource_templates(
         &self,
-        _request: Option<PaginatedRequestParam>,
+        _request: Option<PaginatedRequestParams>,
     ) -> Result<ListResourceTemplatesResult, ErrorData> {
         let template = RawResourceTemplate {
             uri_template: "test://files/{path}".to_string(),
@@ -76,12 +77,14 @@ impl ResourceHandler {
             title: Some("File Template".to_string()),
             description: Some("Access files by path using a parameterized URI".to_string()),
             mime_type: Some("text/plain".to_string()),
+            icons: None,
         }
         .no_annotation();
 
         Ok(ListResourceTemplatesResult {
             resource_templates: vec![template],
             next_cursor: None,
+            meta: None,
         })
     }
 
@@ -92,7 +95,7 @@ impl ResourceHandler {
     /// Returns an error if the resource URI is unknown or invalid.
     pub fn read_resource(
         &self,
-        request: &ReadResourceRequestParam,
+        request: &ReadResourceRequestParams,
     ) -> Result<ReadResourceResult, ErrorData> {
         let uri = &request.uri;
 
@@ -152,7 +155,7 @@ impl ResourceHandler {
     /// # Errors
     ///
     /// Returns an error if the resource does not support subscriptions.
-    pub fn subscribe(&self, request: &SubscribeRequestParam) -> Result<(), ErrorData> {
+    pub fn subscribe(&self, request: &SubscribeRequestParams) -> Result<(), ErrorData> {
         // For now, we accept subscriptions to the random resource
         // In a real implementation, we would track subscriptions and send notifications
         let uri = &request.uri;
@@ -175,7 +178,7 @@ impl ResourceHandler {
     ///
     /// This function currently does not return errors, but returns `Result`
     /// for API consistency with the MCP protocol.
-    pub const fn unsubscribe(&self, _request: &UnsubscribeRequestParam) -> Result<(), ErrorData> {
+    pub const fn unsubscribe(&self, _request: &UnsubscribeRequestParams) -> Result<(), ErrorData> {
         // For now, we accept unsubscribe for any URI
         // In a real implementation, we would remove the subscription
         Ok(())
