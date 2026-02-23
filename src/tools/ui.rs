@@ -28,3 +28,14 @@ super::empty_params_schema!(
     UiResourceCarouselParams,
     "Parameters for the `ui_resource_carousel` tool (no input needed)."
 );
+
+/// Parameters for the `ui_internal_only` tool (no input needed).
+///
+/// This tool has `visibility: "app"` — it is only callable from the MCP App
+/// iframe, not visible to the LLM. Used to test client-side tool filtering.
+#[derive(Debug, Deserialize)]
+pub struct UiInternalOnlyParams {}
+super::empty_params_schema!(
+    UiInternalOnlyParams,
+    "Parameters for the `ui_internal_only` tool (no input needed)."
+);

@@ -328,6 +328,10 @@ mod tools_compliance {
         let _ = schema_for!(testing::NestedDataParams);
         let _ = schema_for!(testing::LargeResponseParams);
         let _ = schema_for!(testing::BinaryDataParams);
+        let _ = schema_for!(ui::UiResourceButtonParams);
+        let _ = schema_for!(ui::UiResourceFormParams);
+        let _ = schema_for!(ui::UiResourceCarouselParams);
+        let _ = schema_for!(ui::UiInternalOnlyParams);
     }
 
     /// Spec: "Tools without parameters use: { type: object, additionalProperties: false }"
@@ -373,6 +377,11 @@ mod tools_compliance {
             "nested_data",
             "large_response",
             "binary_data",
+            "noop",
+            "ui_resource_button",
+            "ui_resource_form",
+            "ui_resource_carousel",
+            "ui_internal_only",
         ];
 
         for name in &tool_names {
