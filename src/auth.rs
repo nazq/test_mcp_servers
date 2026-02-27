@@ -134,11 +134,10 @@ pub async fn auth_middleware(
         .headers()
         .get("origin")
         .and_then(|v| v.to_str().ok())
+        && !is_allowed_origin(origin)
     {
-        if !is_allowed_origin(origin) {
-            tracing::debug!(origin = %origin, "Origin not allowed");
-            return Err(AuthError::new("Origin not allowed"));
-        }
+        tracing::debug!(origin = %origin, "Origin not allowed");
+        return Err(AuthError::new("Origin not allowed"));
     }
 
     Ok(next.run(request).await)
