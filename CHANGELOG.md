@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-02-27
+
+### Documentation
+
+- Remove temp planning docs, consolidate CI/CD documentation ([#41](https://github.com/nazq/test_mcp_servers/pull/41))
+
+
 ## [2.0.0] - 2026-02-27
 
 ### Dependencies
