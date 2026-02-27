@@ -1,6 +1,6 @@
 //! Tool implementations for the MCP test server.
 //!
-//! This module provides 30 tools for comprehensive testing of MCP clients,
+//! This module provides 33 tools for comprehensive testing of MCP clients,
 //! organized into the following categories:
 //!
 //! - **math**: Basic arithmetic operations (add, subtract, multiply, divide)
@@ -8,7 +8,7 @@
 //! - **encoding**: Data encoding/decoding (`json_parse`, `json_stringify`, `base64_encode`, `base64_decode`, `hash_sha256`)
 //! - **utility**: Utility functions (`random_number`, `random_uuid`, `current_time`)
 //! - **testing**: Testing helpers (sleep, fail, `fail_with_message`, `slow_echo`, `nested_data`, `large_response`, `binary_data`, noop, `task_slow_compute`, `task_cancellable`, `task_fail`)
-//! - **ui**: MCP App interactive tools (`ui_resource_button`, `ui_resource_form`, `ui_resource_carousel`, `ui_internal_only`)
+//! - **ui**: MCP App interactive tools (`ui_resource_button`, `ui_resource_form`, `ui_resource_carousel`, `ui_internal_only`, `ui_resource_dashboard`, `ui_resource_data_table`, `ui_resource_pipeline`)
 
 /// Generate a `JsonSchema` impl for an empty params struct that includes
 /// `"properties": {}` in the output. VS Code Copilot Chat requires this field

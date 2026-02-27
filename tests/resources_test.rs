@@ -19,8 +19,8 @@ use rmcp::model::{ReadResourceRequestParams, ResourceContents, SubscribeRequestP
 #[test]
 fn test_list_static_resources() {
     let resources = list_static_resources();
-    // 4 original static + 4 UI app resources = 8
-    assert_eq!(resources.len(), 8);
+    // 4 original static + 7 UI app resources = 11
+    assert_eq!(resources.len(), 11);
 }
 
 #[test]
@@ -264,8 +264,8 @@ fn test_resource_handler_list_resources() {
     let handler = ResourceHandler::new();
     let result = handler.list_resources(None).unwrap();
 
-    // 8 static (4 original + 4 UI apps) + 3 dynamic = 11 resources
-    assert_eq!(result.resources.len(), 11);
+    // 11 static (4 original + 7 UI apps) + 3 dynamic = 14 resources
+    assert_eq!(result.resources.len(), 14);
 }
 
 #[test]

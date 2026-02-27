@@ -46,7 +46,8 @@ use crate::{
         },
         ui::{
             UiInternalOnlyParams, UiResourceButtonParams, UiResourceCarouselParams,
-            UiResourceFormParams,
+            UiResourceDashboardParams, UiResourceDataTableParams, UiResourceFormParams,
+            UiResourcePipelineParams,
         },
         utility::{CurrentTimeParams, RandomNumberParams, RandomUuidParams},
     },
@@ -199,9 +200,14 @@ impl McpTestServer {
                 auth_middleware,
             ));
 
-        // Build the main router combining public and protected routes
+        // Build OAuth mock endpoints (public — these ARE the auth provider)
+        let oauth_state = crate::oauth::OAuthState::new(format!("http://{addr}"));
+        let oauth_routes = crate::oauth::oauth_router(oauth_state);
+
+        // Build the main router combining public, OAuth, and protected routes
         let app = Router::new()
             .route("/health", get(health_check))
+            .merge(oauth_routes)
             .merge(protected_routes)
             .layer(CorsLayer::permissive());
 
@@ -579,6 +585,44 @@ impl McpTestServer {
             "visibility": "app"
         })
         .to_string()
+    }
+
+    // Rich MCP App tools — complex interactive UIs with CDN library fallbacks
+
+    /// Dashboard with Chart.js charts and tool call metrics.
+    #[tool(
+        description = "Interactive dashboard with Chart.js charts and tool call metrics (MCP App)",
+        meta = ui_meta("ui://dashboard/app.html", "both")
+    )]
+    async fn ui_resource_dashboard(
+        &self,
+        Parameters(_params): Parameters<UiResourceDashboardParams>,
+    ) -> String {
+        "Dashboard UI ready. Calls add and current_time tools for live metrics.".to_string()
+    }
+
+    /// Filterable, sortable data table of the server's tool registry.
+    #[tool(
+        description = "Filterable tool registry table with Tabulator.js and vanilla fallback (MCP App)",
+        meta = ui_meta("ui://data_table/app.html", "both")
+    )]
+    async fn ui_resource_data_table(
+        &self,
+        Parameters(_params): Parameters<UiResourceDataTableParams>,
+    ) -> String {
+        "Data table UI ready. Uses Tabulator (CDN) with vanilla table fallback.".to_string()
+    }
+
+    /// Interactive ETL pipeline visualizer.
+    #[tool(
+        description = "Interactive ETL pipeline visualizer with stage-by-stage execution (MCP App)",
+        meta = ui_meta("ui://pipeline/app.html", "both")
+    )]
+    async fn ui_resource_pipeline(
+        &self,
+        Parameters(_params): Parameters<UiResourcePipelineParams>,
+    ) -> String {
+        "Pipeline UI ready. Run the pipeline to execute all stages sequentially.".to_string()
     }
 }
 

@@ -16,8 +16,11 @@
 //! - Full MCP 2025-11-25 specification compliance
 //! - Streamable HTTP transport (`/mcp` endpoint)
 //! - API key authentication via `Authorization: Bearer` header
-//! - 26 tools for testing (math, string, encoding, utility, testing)
-//! - 8 resources (static and dynamic) with subscription support
+//! - OAuth 2.1 mock endpoints for testing client authentication flows
+//! - 33 tools for testing (math, string, encoding, utility, testing, tasks, UI)
+//! - MCP Tasks support for async long-running operations
+//! - 11 resources (static, dynamic, and MCP App UI) with subscription support
+//! - 7 MCP App interactive UI tools with CDN fallbacks
 //! - 5 prompts with argument validation
 //! - Auto-completion for prompt arguments
 //! - Logging level control
@@ -50,6 +53,7 @@
 //!
 //! - [`auth`] - Authentication middleware for API key and origin validation
 //! - [`config`] - Server configuration from environment variables
+//! - [`oauth`] - Mock OAuth 2.1 endpoints (RFC 9728, 8414, 7591)
 //! - [`prompts`] - Prompt templates and argument handling
 //! - [`resources`] - Static and dynamic resource handlers
 //! - [`server`] - Main server implementation with all tools
@@ -59,6 +63,7 @@ pub mod auth;
 pub mod config;
 pub mod error;
 pub mod icons;
+pub mod oauth;
 pub mod prompts;
 pub mod resources;
 pub mod server;
