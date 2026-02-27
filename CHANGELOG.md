@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-02-27
+
+### Dependencies
+
+- Bump rust from 1.91-alpine to 1.93-alpine ([#33](https://github.com/nazq/test_mcp_servers/pull/33)) *(docker)*
+
+### Features
+
+- Deps update, MCP Tasks, OAuth 2.1 mock, rich UI tools ([#40](https://github.com/nazq/test_mcp_servers/pull/40))
+- Upgrade rmcp 0.10 to 0.16 with MCP Apps and server icons ([#39](https://github.com/nazq/test_mcp_servers/pull/39)) **BREAKING**
+
+
 ## [0.4.0] - 2025-12-08
 
 ### Features
