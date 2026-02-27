@@ -7,7 +7,7 @@
 //! - **string**: Text manipulation (echo, concat, uppercase, lowercase, reverse, length)
 //! - **encoding**: Data encoding/decoding (`json_parse`, `json_stringify`, `base64_encode`, `base64_decode`, `hash_sha256`)
 //! - **utility**: Utility functions (`random_number`, `random_uuid`, `current_time`)
-//! - **testing**: Testing helpers (sleep, fail, `fail_with_message`, `slow_echo`, `nested_data`, `large_response`, `binary_data`, noop)
+//! - **testing**: Testing helpers (sleep, fail, `fail_with_message`, `slow_echo`, `nested_data`, `large_response`, `binary_data`, noop, `task_slow_compute`, `task_cancellable`, `task_fail`)
 //! - **ui**: MCP App interactive tools (`ui_resource_button`, `ui_resource_form`, `ui_resource_carousel`, `ui_internal_only`)
 
 /// Generate a `JsonSchema` impl for an empty params struct that includes

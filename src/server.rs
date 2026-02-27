@@ -6,6 +6,7 @@ use axum::{Router, middleware, response::Json, routing::get};
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use chrono::Utc;
 use rand::Rng;
+use rmcp::ErrorData as McpError;
 use rmcp::{
     handler::server::{ServerHandler, router::tool::ToolRouter, wrapper::Parameters},
     model::{
@@ -13,6 +14,8 @@ use rmcp::{
         ListResourceTemplatesResult, ListResourcesResult, ProtocolVersion, ReadResourceResult,
         Reference, ServerCapabilities, ServerInfo,
     },
+    task_handler,
+    task_manager::OperationProcessor,
     tool, tool_handler, tool_router,
     transport::streamable_http_server::{
         StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
@@ -20,6 +23,7 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::CorsLayer;
 
@@ -37,7 +41,8 @@ use crate::{
         },
         testing::{
             BinaryDataParams, FailParams, FailWithMessageParams, LargeResponseParams,
-            NestedDataParams, SleepParams, SlowEchoParams,
+            NestedDataParams, SleepParams, SlowEchoParams, TaskCancellableParams, TaskFailParams,
+            TaskSlowComputeParams,
         },
         ui::{
             UiInternalOnlyParams, UiResourceButtonParams, UiResourceCarouselParams,
@@ -109,12 +114,22 @@ async fn health_check() -> Json<HealthResponse> {
 ///
 /// This server provides a comprehensive set of tools, prompts, and resources
 /// for testing MCP client implementations.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct McpTestServer {
     config: Config,
     tool_router: ToolRouter<Self>,
     resource_handler: crate::resources::ResourceHandler,
-    log_level: std::sync::Arc<std::sync::atomic::AtomicU8>,
+    log_level: Arc<std::sync::atomic::AtomicU8>,
+    /// Task processor for async long-running operations (MCP Tasks spec).
+    processor: Arc<Mutex<OperationProcessor>>,
+}
+
+impl std::fmt::Debug for McpTestServer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("McpTestServer")
+            .field("config", &self.config)
+            .finish_non_exhaustive()
+    }
 }
 
 impl McpTestServer {
@@ -126,7 +141,8 @@ impl McpTestServer {
             tool_router: Self::tool_router(),
             resource_handler: crate::resources::ResourceHandler::new(),
             // Default to Info level (1)
-            log_level: std::sync::Arc::new(std::sync::atomic::AtomicU8::new(1)),
+            log_level: Arc::new(std::sync::atomic::AtomicU8::new(1)),
+            processor: Arc::new(Mutex::new(OperationProcessor::new())),
         }
     }
 
@@ -437,6 +453,70 @@ impl McpTestServer {
         "ok".to_string()
     }
 
+    // Task tools — async long-running operations (MCP Tasks spec)
+    //
+    // These tools simulate long-running operations. When called as tasks
+    // (via `enqueue_task`), they run in the background and clients poll
+    // for status and results. The `#[task_handler]` macro on ServerHandler
+    // wires up the task lifecycle automatically.
+
+    /// Simulate a slow computation that takes N seconds.
+    ///
+    /// When invoked as a task, the client can poll for status. The tool
+    /// sleeps in 1-second increments, allowing cancellation between ticks.
+    #[tool(
+        description = "Simulate a slow computation (for task testing). Returns after duration_secs."
+    )]
+    async fn task_slow_compute(
+        &self,
+        #[allow(unused)] ct: CancellationToken,
+        Parameters(params): Parameters<TaskSlowComputeParams>,
+    ) -> String {
+        for i in 0..params.duration_secs {
+            if ct.is_cancelled() {
+                return format!("Cancelled after {i} seconds");
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        }
+        format!(
+            "Computation complete after {} seconds",
+            params.duration_secs
+        )
+    }
+
+    /// Simulate a cancellable long-running operation.
+    ///
+    /// Same as `task_slow_compute` but defaults to a longer duration (30s),
+    /// designed for testing client-initiated cancellation.
+    #[tool(
+        description = "Simulate a cancellable long-running operation (for task cancellation testing)."
+    )]
+    async fn task_cancellable(
+        &self,
+        #[allow(unused)] ct: CancellationToken,
+        Parameters(params): Parameters<TaskCancellableParams>,
+    ) -> String {
+        for i in 0..params.duration_secs {
+            if ct.is_cancelled() {
+                return format!("Cancelled after {i} seconds");
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        }
+        format!("Operation complete after {} seconds", params.duration_secs)
+    }
+
+    /// Start a task that fails after a delay.
+    ///
+    /// Tests client handling of the `Failed` task status.
+    #[tool(description = "Start a task that fails after a delay (for task failure testing).")]
+    async fn task_fail(
+        &self,
+        Parameters(params): Parameters<TaskFailParams>,
+    ) -> Result<String, String> {
+        tokio::time::sleep(std::time::Duration::from_secs(params.duration_secs)).await;
+        Err(params.message)
+    }
+
     // MCP App tools
     //
     // These tools declare `_meta.ui.resourceUri` so MCP Apps-capable hosts
@@ -503,6 +583,8 @@ impl McpTestServer {
 }
 
 #[tool_handler(router = self.tool_router)]
+#[task_handler(processor = self.processor)]
+#[allow(deprecated, clippy::significant_drop_tightening)] // task_handler macro (rmcp 0.16)
 impl ServerHandler for McpTestServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
@@ -517,6 +599,7 @@ impl ServerHandler for McpTestServer {
                 .enable_resources_subscribe()
                 .enable_logging()
                 .enable_completions()
+                .enable_tasks()
                 .enable_extensions_with({
                     let mut ext = ExtensionCapabilities::new();
                     ext.insert(
@@ -1142,5 +1225,75 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(parsed["status"], "ok");
         assert_eq!(parsed["visibility"], "app");
+    }
+
+    // =============================================================================
+    // TASK TOOL TESTS
+    // =============================================================================
+
+    #[tokio::test]
+    async fn test_task_slow_compute() {
+        let server = test_server();
+        let ct = CancellationToken::new();
+        let result = server
+            .task_slow_compute(ct, Parameters(TaskSlowComputeParams { duration_secs: 1 }))
+            .await;
+        assert!(result.contains("Computation complete"));
+        assert!(result.contains("1 seconds"));
+    }
+
+    #[tokio::test]
+    async fn test_task_slow_compute_cancelled() {
+        let server = test_server();
+        let ct = CancellationToken::new();
+        ct.cancel(); // pre-cancel
+        let result = server
+            .task_slow_compute(ct, Parameters(TaskSlowComputeParams { duration_secs: 60 }))
+            .await;
+        assert!(result.contains("Cancelled"));
+    }
+
+    #[tokio::test]
+    async fn test_task_cancellable() {
+        let server = test_server();
+        let ct = CancellationToken::new();
+        let result = server
+            .task_cancellable(ct, Parameters(TaskCancellableParams { duration_secs: 1 }))
+            .await;
+        assert!(result.contains("Operation complete"));
+    }
+
+    #[tokio::test]
+    async fn test_task_cancellable_cancelled() {
+        let server = test_server();
+        let ct = CancellationToken::new();
+        ct.cancel();
+        let result = server
+            .task_cancellable(ct, Parameters(TaskCancellableParams { duration_secs: 60 }))
+            .await;
+        assert!(result.contains("Cancelled"));
+    }
+
+    #[tokio::test]
+    async fn test_task_fail() {
+        let server = test_server();
+        let result = server
+            .task_fail(Parameters(TaskFailParams {
+                duration_secs: 0,
+                message: "boom".to_string(),
+            }))
+            .await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "boom");
+    }
+
+    #[test]
+    fn test_server_advertises_tasks_capability() {
+        let server = test_server();
+        let info = server.get_info();
+        assert!(
+            info.capabilities.tasks.is_some(),
+            "should advertise tasks capability"
+        );
     }
 }
