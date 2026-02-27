@@ -21,12 +21,12 @@ The project uses three GitHub Actions workflows:
    - Fast feedback on formatting issues
 
 2. **Clippy Lints** (`clippy`)
-   - Runs on Rust 1.85.0 (MSRV) and stable
+   - Runs on Rust 1.88.0 (MSRV) and stable
    - All warnings treated as errors
    - Checks all targets and features
 
 3. **Test Suite** (`test`)
-   - Runs on Rust 1.85.0 (MSRV) and stable
+   - Runs on Rust 1.88.0 (MSRV) and stable
    - Executes all tests with all features enabled
    - Uses cargo caching for faster builds
 
@@ -233,6 +233,53 @@ release-plz release-pr --dry-run
 5. **Dependencies**: Keep dependencies up to date
 6. **Versioning**: Let release-plz handle version bumps
 7. **Changelog**: Don't manually edit CHANGELOG.md
+
+## Quick Start
+
+### 1. Enable GitHub Actions
+
+1. Go to repository Settings → Actions → General
+2. Under "Actions permissions", select "Allow all actions and reusable workflows"
+3. Under "Workflow permissions", ensure:
+   - "Read and write permissions" is selected
+   - "Allow GitHub Actions to create and approve pull requests" is checked
+4. Click "Save"
+
+### 2. (Optional) Add Codecov
+
+1. Sign in to [codecov.io](https://codecov.io) with GitHub
+2. Add the repository and copy the upload token
+3. Go to repository Settings → Secrets and variables → Actions
+4. Click "New repository secret", name: `CODECOV_TOKEN`, paste the token
+
+CI will not fail if this secret is missing — coverage upload is simply skipped.
+
+### 3. Test the Pipeline
+
+```bash
+git checkout -b test-cicd
+echo "# CI/CD Test" >> README.md
+git add README.md
+git commit -m "test: verify CI/CD pipeline"
+git push origin test-cicd
+```
+
+Open a PR to `main` and verify all 6 jobs pass (fmt, clippy, test, coverage, docker, status).
+
+### 4. Test the Release Process
+
+After merging a PR with conventional commits:
+1. `release-plz` automatically analyzes commits and creates a release PR
+2. Merge the release PR — `release-plz` creates a git tag
+3. The tag triggers the release workflow, which builds Docker images and creates a GitHub release
+
+## Secrets
+
+### Automatically Provided
+- **`GITHUB_TOKEN`**: Used for release-plz, Docker registry, and GitHub releases. No configuration needed.
+
+### Optional
+- **`CODECOV_TOKEN`**: Codecov upload token. Get from [codecov.io](https://codecov.io). CI will not fail if missing.
 
 ## References
 
