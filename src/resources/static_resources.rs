@@ -13,6 +13,7 @@ pub fn get_hello_resource() -> Resource {
         mime_type: Some("text/plain".to_string()),
         size: Some(13),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -39,6 +40,7 @@ pub fn get_data_json_resource() -> Resource {
         mime_type: Some("application/json".to_string()),
         size: Some(49),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -65,6 +67,7 @@ pub fn get_image_png_resource() -> Resource {
         mime_type: Some("image/png".to_string()),
         size: Some(68),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -95,6 +98,7 @@ pub fn get_large_txt_resource() -> Resource {
         mime_type: Some("text/plain".to_string()),
         size: Some(11_100),
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -137,6 +141,7 @@ pub fn get_button_app_resource() -> Resource {
         mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -165,6 +170,7 @@ pub fn get_form_app_resource() -> Resource {
         mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -193,6 +199,7 @@ pub fn get_carousel_app_resource() -> Resource {
         mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -210,6 +217,39 @@ pub fn get_carousel_app_content() -> ResourceContents {
     }
 }
 
+/// Get the internal-only app UI resource.
+#[must_use]
+pub fn get_internal_only_app_resource() -> Resource {
+    RawResource {
+        uri: "ui://internal_only/app.html".to_string(),
+        name: "internal-only-app".to_string(),
+        title: Some("Internal Only App".to_string()),
+        description: Some(
+            "App-only tool that should not appear in LLM tool list (tests visibility filtering)"
+                .to_string(),
+        ),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        size: None,
+        icons: None,
+        meta: None,
+    }
+    .no_annotation()
+}
+
+/// Get the internal-only app HTML content with the MCP App shim inlined.
+#[must_use]
+pub fn get_internal_only_app_content() -> ResourceContents {
+    let shim = include_str!("../../ui_templates/mcp-app-shim.js");
+    let html =
+        include_str!("../../ui_templates/internal_only.html").replace("// {{MCP_APP_SHIM}}", shim);
+    ResourceContents::TextResourceContents {
+        uri: "ui://internal_only/app.html".to_string(),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        text: html,
+        meta: None,
+    }
+}
+
 /// Get all static resources.
 #[must_use]
 pub fn list_static_resources() -> Vec<Resource> {
@@ -221,6 +261,7 @@ pub fn list_static_resources() -> Vec<Resource> {
         get_button_app_resource(),
         get_form_app_resource(),
         get_carousel_app_resource(),
+        get_internal_only_app_resource(),
     ]
 }
 
@@ -235,6 +276,7 @@ pub fn read_static_resource(uri: &str) -> Option<ResourceContents> {
         "ui://button/app.html" => Some(get_button_app_content()),
         "ui://form/app.html" => Some(get_form_app_content()),
         "ui://carousel/app.html" => Some(get_carousel_app_content()),
+        "ui://internal_only/app.html" => Some(get_internal_only_app_content()),
         _ => None,
     }
 }

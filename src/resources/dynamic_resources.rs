@@ -44,6 +44,7 @@ pub fn get_counter_resource() -> Resource {
         mime_type: Some("text/plain".to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -70,6 +71,7 @@ pub fn get_timestamp_resource() -> Resource {
         mime_type: Some("text/plain".to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }
@@ -97,6 +99,7 @@ pub fn get_random_resource() -> Resource {
         mime_type: Some("text/plain".to_string()),
         size: None,
         icons: None,
+        meta: None,
     }
     .no_annotation()
 }

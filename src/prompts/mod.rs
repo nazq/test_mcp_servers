@@ -11,7 +11,7 @@ pub mod templates;
 use crate::server::McpTestServer;
 use rmcp::{
     ErrorData as McpError,
-    model::{GetPromptRequestParam, GetPromptResult, ListPromptsResult, PromptMessage},
+    model::{GetPromptRequestParams, GetPromptResult, ListPromptsResult, PromptMessage},
     service::{RequestContext, RoleServer},
 };
 use std::collections::HashMap;
@@ -71,6 +71,7 @@ impl McpTestServer {
         Ok(ListPromptsResult {
             prompts,
             next_cursor: None,
+            meta: None,
         })
     }
 
@@ -80,7 +81,7 @@ impl McpTestServer {
     /// this method doesn't use instance state.
     pub(crate) fn get_prompt_impl(
         &self,
-        request: GetPromptRequestParam,
+        request: GetPromptRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<GetPromptResult, McpError> {
         let _ = self; // Required by ServerHandler trait

@@ -12,15 +12,15 @@ use mcp_test_server::resources::{
         get_large_txt_resource, list_static_resources, read_static_resource,
     },
 };
-use rmcp::model::{ReadResourceRequestParam, ResourceContents, SubscribeRequestParam};
+use rmcp::model::{ReadResourceRequestParams, ResourceContents, SubscribeRequestParams};
 
 // Static resource tests
 
 #[test]
 fn test_list_static_resources() {
     let resources = list_static_resources();
-    // 4 original static + 3 UI app resources = 7
-    assert_eq!(resources.len(), 7);
+    // 4 original static + 4 UI app resources = 8
+    assert_eq!(resources.len(), 8);
 }
 
 #[test]
@@ -163,6 +163,22 @@ fn test_read_carousel_app_resource() {
     }
 }
 
+#[test]
+fn test_read_internal_only_app_resource() {
+    let content = read_static_resource("ui://internal_only/app.html");
+    assert!(content.is_some());
+    match content.unwrap() {
+        ResourceContents::TextResourceContents {
+            text, mime_type, ..
+        } => {
+            assert_eq!(mime_type, Some("text/html;profile=mcp-app".to_string()));
+            assert!(text.contains("McpApp"));
+            assert!(text.contains("Internal"));
+        }
+        ResourceContents::BlobResourceContents { .. } => panic!("Expected text content"),
+    }
+}
+
 // Dynamic resource tests
 
 #[test]
@@ -248,8 +264,8 @@ fn test_resource_handler_list_resources() {
     let handler = ResourceHandler::new();
     let result = handler.list_resources(None).unwrap();
 
-    // 7 static (4 original + 3 UI apps) + 3 dynamic = 10 resources
-    assert_eq!(result.resources.len(), 10);
+    // 8 static (4 original + 4 UI apps) + 3 dynamic = 11 resources
+    assert_eq!(result.resources.len(), 11);
 }
 
 #[test]
@@ -267,8 +283,9 @@ fn test_resource_handler_list_templates() {
 #[test]
 fn test_resource_handler_read_static() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParam {
+    let request = ReadResourceRequestParams {
         uri: "test://static/hello.txt".to_string(),
+        meta: None,
     };
     let result = handler.read_resource(&request).unwrap();
 
@@ -278,8 +295,9 @@ fn test_resource_handler_read_static() {
 #[test]
 fn test_resource_handler_read_dynamic_counter() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParam {
+    let request = ReadResourceRequestParams {
         uri: "test://dynamic/counter".to_string(),
+        meta: None,
     };
 
     // Counter should increment on each read
@@ -302,8 +320,9 @@ fn test_resource_handler_read_dynamic_counter() {
 #[test]
 fn test_resource_handler_read_template() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParam {
+    let request = ReadResourceRequestParams {
         uri: "test://files/example.txt".to_string(),
+        meta: None,
     };
     let result = handler.read_resource(&request).unwrap();
 
@@ -318,8 +337,9 @@ fn test_resource_handler_read_template() {
 #[test]
 fn test_resource_handler_read_unknown() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParam {
+    let request = ReadResourceRequestParams {
         uri: "test://nonexistent".to_string(),
+        meta: None,
     };
     let result = handler.read_resource(&request);
 
@@ -329,8 +349,9 @@ fn test_resource_handler_read_unknown() {
 #[test]
 fn test_resource_handler_subscribe_random() {
     let handler = ResourceHandler::new();
-    let request = SubscribeRequestParam {
+    let request = SubscribeRequestParams {
         uri: "test://dynamic/random".to_string(),
+        meta: None,
     };
     let result = handler.subscribe(&request);
 
@@ -340,8 +361,9 @@ fn test_resource_handler_subscribe_random() {
 #[test]
 fn test_resource_handler_subscribe_non_subscribable() {
     let handler = ResourceHandler::new();
-    let request = SubscribeRequestParam {
+    let request = SubscribeRequestParams {
         uri: "test://static/hello.txt".to_string(),
+        meta: None,
     };
     let result = handler.subscribe(&request);
 

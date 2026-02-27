@@ -9,11 +9,10 @@ use rand::Rng;
 use rmcp::{
     handler::server::{ServerHandler, router::tool::ToolRouter, wrapper::Parameters},
     model::{
-        CompleteResult, CompletionInfo, Implementation, ListResourceTemplatesResult,
-        ListResourcesResult, PromptsCapability, ProtocolVersion, ReadResourceResult, Reference,
-        ResourcesCapability, ServerCapabilities, ServerInfo, ToolsCapability,
+        CompleteResult, CompletionInfo, ExtensionCapabilities, Icon, Implementation,
+        ListResourceTemplatesResult, ListResourcesResult, ProtocolVersion, ReadResourceResult,
+        Reference, ServerCapabilities, ServerInfo,
     },
-    serde_json::Map,
     tool, tool_handler, tool_router,
     transport::streamable_http_server::{
         StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
@@ -40,20 +39,39 @@ use crate::{
             BinaryDataParams, FailParams, FailWithMessageParams, LargeResponseParams,
             NestedDataParams, SleepParams, SlowEchoParams,
         },
-        ui::{UiResourceButtonParams, UiResourceCarouselParams, UiResourceFormParams},
+        ui::{
+            UiInternalOnlyParams, UiResourceButtonParams, UiResourceCarouselParams,
+            UiResourceFormParams,
+        },
         utility::{CurrentTimeParams, RandomNumberParams, RandomUuidParams},
     },
 };
 
 /// Build `_meta` for a UI tool linking it to its MCP App resource.
 ///
-/// Sets both the new format (`_meta.ui.resourceUri`) and legacy flat key
-/// (`_meta["ui/resourceUri"]`) for backward compatibility with older hosts.
-fn ui_meta(resource_uri: &str) -> rmcp::model::Meta {
+/// Sets the new format (`_meta.ui.resourceUri` + `_meta.ui.visibility`) and
+/// legacy flat key (`_meta["ui/resourceUri"]`) for backward compatibility.
+///
+/// `visibility` controls where the tool appears:
+/// - `"both"` — visible to both the LLM and the UI iframe
+/// - `"app"` — only callable from the iframe, hidden from the LLM
+fn ui_meta(resource_uri: &str, visibility: &str) -> rmcp::model::Meta {
+    debug_assert!(
+        visibility == "both" || visibility == "app",
+        "Invalid UI visibility: {visibility}"
+    );
+
     let mut meta = rmcp::model::Meta::new();
     meta.insert(
         "ui".to_string(),
-        serde_json::json!({ "resourceUri": resource_uri }),
+        serde_json::json!({ "resourceUri": resource_uri, "visibility": visibility }),
+    );
+    // Legacy flat key — only carries resourceUri. Visibility is new and not
+    // supported by hosts that still read the flat key format.
+    tracing::warn!(
+        resource_uri,
+        "Emitting deprecated flat key `ui/resourceUri` in tool _meta — \
+         migrate clients to `_meta.ui.resourceUri`"
     );
     meta.insert(
         "ui/resourceUri".to_string(),
@@ -121,6 +139,7 @@ impl McpTestServer {
     /// # Panics
     ///
     /// Panics if the Ctrl+C signal handler cannot be installed.
+    #[allow(clippy::cognitive_complexity)]
     pub async fn run(&self) -> anyhow::Result<()> {
         let addr = std::net::SocketAddr::new(self.config.host, self.config.port);
         tracing::info!(%addr, "Starting MCP Test Server");
@@ -132,7 +151,9 @@ impl McpTestServer {
         let session_manager = Arc::new(LocalSessionManager::default());
         let streamable_http_config = StreamableHttpServerConfig {
             sse_keep_alive: Some(std::time::Duration::from_secs(15)),
+            sse_retry: Some(std::time::Duration::from_secs(3)),
             stateful_mode: false,
+            cancellation_token: ct.clone(),
         };
 
         // Clone self for the service factory closure
@@ -427,7 +448,7 @@ impl McpTestServer {
     /// Interactive button app — host renders `ui://button/app.html`.
     #[tool(
         description = "Returns a single interactive UI button (tests single UI resource rendering)",
-        meta = ui_meta("ui://button/app.html")
+        meta = ui_meta("ui://button/app.html", "both")
     )]
     async fn ui_resource_button(
         &self,
@@ -439,7 +460,7 @@ impl McpTestServer {
     /// Interactive form app — host renders `ui://form/app.html`.
     #[tool(
         description = "Returns a single interactive UI form (tests single UI resource rendering)",
-        meta = ui_meta("ui://form/app.html")
+        meta = ui_meta("ui://form/app.html", "both")
     )]
     async fn ui_resource_form(
         &self,
@@ -451,7 +472,7 @@ impl McpTestServer {
     /// Interactive carousel app — host renders `ui://carousel/app.html`.
     #[tool(
         description = "Returns 3 interactive UI cards (tests multi-resource carousel rendering)",
-        meta = ui_meta("ui://carousel/app.html")
+        meta = ui_meta("ui://carousel/app.html", "both")
     )]
     async fn ui_resource_carousel(
         &self,
@@ -460,34 +481,65 @@ impl McpTestServer {
         "Carousel UI ready. 3 interactive cards loaded. Click a card to call the echo tool."
             .to_string()
     }
+
+    /// Internal-only UI tool — hidden from the LLM, only callable from the iframe.
+    ///
+    /// Tests client-side tool filtering based on `_meta.ui.visibility: "app"`.
+    #[tool(
+        description = "Internal tool only callable from a UI iframe (tests app-only visibility filtering)",
+        meta = ui_meta("ui://internal_only/app.html", "app")
+    )]
+    async fn ui_internal_only(
+        &self,
+        Parameters(_params): Parameters<UiInternalOnlyParams>,
+    ) -> String {
+        serde_json::json!({
+            "status": "ok",
+            "message": "Internal-only tool called successfully",
+            "visibility": "app"
+        })
+        .to_string()
+    }
 }
 
 #[tool_handler(router = self.tool_router)]
 impl ServerHandler for McpTestServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
-            protocol_version: ProtocolVersion::default(),
-            capabilities: ServerCapabilities {
-                experimental: None,
-                logging: Some(Map::new()),
-                completions: Some(Map::new()),
-                prompts: Some(PromptsCapability {
-                    list_changed: Some(true),
-                }),
-                resources: Some(ResourcesCapability {
-                    subscribe: Some(true),
-                    list_changed: Some(true),
-                }),
-                tools: Some(ToolsCapability {
-                    list_changed: Some(true),
-                }),
-            },
+            protocol_version: ProtocolVersion::LATEST,
+            capabilities: ServerCapabilities::builder()
+                .enable_tools()
+                .enable_tool_list_changed()
+                .enable_prompts()
+                .enable_prompts_list_changed()
+                .enable_resources()
+                .enable_resources_list_changed()
+                .enable_resources_subscribe()
+                .enable_logging()
+                .enable_completions()
+                .enable_extensions_with({
+                    let mut ext = ExtensionCapabilities::new();
+                    ext.insert(
+                        "io.modelcontextprotocol/ui".to_string(),
+                        serde_json::Map::new(),
+                    );
+                    ext
+                })
+                .build(),
             server_info: Implementation {
                 name: "mcp-test-server".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
                 title: Some("MCP Test Server".to_string()),
-                icons: None,
-                website_url: Some("https://github.com/peg-labs/mcp-test-server".to_string()),
+                description: Some(
+                    "Comprehensive MCP test server for validating client implementations."
+                        .to_string(),
+                ),
+                icons: Some(vec![Icon {
+                    src: crate::icons::SERVER_ICON_SVG.to_string(),
+                    mime_type: Some("image/svg+xml".to_string()),
+                    sizes: Some(vec!["any".to_string()]),
+                }]),
+                website_url: Some("https://github.com/nazq/test_mcp_servers".to_string()),
             },
             instructions: Some(
                 "A comprehensive MCP test server providing tools, prompts, and resources \
@@ -499,7 +551,7 @@ impl ServerHandler for McpTestServer {
 
     async fn list_prompts(
         &self,
-        _request: Option<rmcp::model::PaginatedRequestParam>,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
         context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<rmcp::model::ListPromptsResult, rmcp::ErrorData> {
         self.list_prompts_impl(context)
@@ -507,7 +559,7 @@ impl ServerHandler for McpTestServer {
 
     async fn get_prompt(
         &self,
-        request: rmcp::model::GetPromptRequestParam,
+        request: rmcp::model::GetPromptRequestParams,
         context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<rmcp::model::GetPromptResult, rmcp::ErrorData> {
         self.get_prompt_impl(request, context)
@@ -515,7 +567,7 @@ impl ServerHandler for McpTestServer {
 
     async fn list_resources(
         &self,
-        request: Option<rmcp::model::PaginatedRequestParam>,
+        request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<ListResourcesResult, rmcp::ErrorData> {
         self.resource_handler.list_resources(request)
@@ -523,7 +575,7 @@ impl ServerHandler for McpTestServer {
 
     async fn list_resource_templates(
         &self,
-        request: Option<rmcp::model::PaginatedRequestParam>,
+        request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<ListResourceTemplatesResult, rmcp::ErrorData> {
         self.resource_handler.list_resource_templates(request)
@@ -531,7 +583,7 @@ impl ServerHandler for McpTestServer {
 
     async fn read_resource(
         &self,
-        request: rmcp::model::ReadResourceRequestParam,
+        request: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<ReadResourceResult, rmcp::ErrorData> {
         self.resource_handler.read_resource(&request)
@@ -539,7 +591,7 @@ impl ServerHandler for McpTestServer {
 
     async fn subscribe(
         &self,
-        request: rmcp::model::SubscribeRequestParam,
+        request: rmcp::model::SubscribeRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<(), rmcp::ErrorData> {
         self.resource_handler.subscribe(&request)
@@ -547,7 +599,7 @@ impl ServerHandler for McpTestServer {
 
     async fn unsubscribe(
         &self,
-        request: rmcp::model::UnsubscribeRequestParam,
+        request: rmcp::model::UnsubscribeRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<(), rmcp::ErrorData> {
         self.resource_handler.unsubscribe(&request)
@@ -555,7 +607,7 @@ impl ServerHandler for McpTestServer {
 
     async fn complete(
         &self,
-        request: rmcp::model::CompleteRequestParam,
+        request: rmcp::model::CompleteRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<CompleteResult, rmcp::ErrorData> {
         // Provide completions based on the reference type and argument
@@ -628,7 +680,7 @@ impl ServerHandler for McpTestServer {
 
     async fn set_level(
         &self,
-        request: rmcp::model::SetLevelRequestParam,
+        request: rmcp::model::SetLevelRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
     ) -> Result<(), rmcp::ErrorData> {
         use std::sync::atomic::Ordering;
@@ -1014,6 +1066,21 @@ mod tests {
     }
 
     #[test]
+    fn test_server_advertises_ui_extension() {
+        let server = test_server();
+        let info = server.get_info();
+        let extensions = info
+            .capabilities
+            .extensions
+            .as_ref()
+            .expect("extensions should be Some");
+        assert!(
+            extensions.contains_key("io.modelcontextprotocol/ui"),
+            "should advertise io.modelcontextprotocol/ui extension"
+        );
+    }
+
+    #[test]
     fn test_config_accessor() {
         let config = Config::default();
         let server = McpTestServer::new(config.clone());
@@ -1064,5 +1131,16 @@ mod tests {
             .ui_resource_carousel(Parameters(UiResourceCarouselParams {}))
             .await;
         assert!(result.contains("Carousel UI ready"));
+    }
+
+    #[tokio::test]
+    async fn test_ui_internal_only() {
+        let server = test_server();
+        let result = server
+            .ui_internal_only(Parameters(UiInternalOnlyParams {}))
+            .await;
+        let parsed: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(parsed["status"], "ok");
+        assert_eq!(parsed["visibility"], "app");
     }
 }
