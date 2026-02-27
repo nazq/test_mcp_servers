@@ -61,7 +61,7 @@ Cache keys include Cargo.lock hash for automatic invalidation on dependency chan
 
 1. **Publish Docker Images** (`publish-docker`)
    - Builds multi-architecture images (amd64, arm64)
-   - Pushes to `ghcr.io/nazq/test_mcp_servers`
+   - Pushes to `ghcr.io/nazq/mcp-test-server`
    - Tags:
      - Semantic version (`v1.2.3`)
      - Major.minor (`v1.2`)
@@ -137,7 +137,7 @@ Add these secrets in GitHub repository settings:
 ### Registry
 Images are published to GitHub Container Registry:
 ```
-ghcr.io/nazq/test_mcp_servers
+ghcr.io/nazq/mcp-test-server
 ```
 
 ### Tags
@@ -149,10 +149,10 @@ ghcr.io/nazq/test_mcp_servers
 ### Pulling Images
 ```bash
 # Pull specific version
-docker pull ghcr.io/nazq/test_mcp_servers:v1.0.0
+docker pull ghcr.io/nazq/mcp-test-server:v1.0.0
 
 # Pull latest
-docker pull ghcr.io/nazq/test_mcp_servers:latest
+docker pull ghcr.io/nazq/mcp-test-server:latest
 ```
 
 ### Multi-Architecture Support

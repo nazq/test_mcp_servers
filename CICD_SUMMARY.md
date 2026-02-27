@@ -34,7 +34,7 @@ A complete CI/CD pipeline has been implemented for the MCP Test Server with auto
 - **create-release**: Creates GitHub release with changelog
 
 **Docker Image Details**:
-- Registry: `ghcr.io/nazq/test_mcp_servers`
+- Registry: `ghcr.io/nazq/mcp-test-server`
 - Architectures: linux/amd64, linux/arm64
 - Tags: version, major.minor, major, latest
 
@@ -187,15 +187,15 @@ docker build -t mcp-test-server:test .
 ### Pull Images
 ```bash
 # Latest
-docker pull ghcr.io/nazq/test_mcp_servers:latest
+docker pull ghcr.io/nazq/mcp-test-server:latest
 
 # Specific version
-docker pull ghcr.io/nazq/test_mcp_servers:v1.0.0
+docker pull ghcr.io/nazq/mcp-test-server:v1.0.0
 ```
 
 ### Run Container
 ```bash
-docker run -p 3000:3000 ghcr.io/nazq/test_mcp_servers:latest
+docker run -p 3000:3000 ghcr.io/nazq/mcp-test-server:latest
 ```
 
 ## Best Practices

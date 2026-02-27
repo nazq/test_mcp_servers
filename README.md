@@ -38,7 +38,7 @@ The server is containerized and designed to be ephemeral—spin it up, run your 
 ### Using Docker
 
 ```bash
-docker run -p 3000:3000 ghcr.io/nazq/test_mcp_servers:latest
+docker run -p 3000:3000 ghcr.io/nazq/mcp-test-server:latest
 ```
 
 ### From Source
