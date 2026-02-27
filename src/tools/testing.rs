@@ -54,3 +54,50 @@ pub struct BinaryDataParams {
     /// Size of binary data in bytes
     pub size_bytes: usize,
 }
+
+// =============================================================================
+// TASK TOOLS — async long-running operations (MCP Tasks spec)
+// =============================================================================
+
+/// Parameters for `task_slow_compute` — a long-running operation that reports progress.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct TaskSlowComputeParams {
+    /// Duration of the computation in seconds (default: 5)
+    #[serde(default = "default_task_duration")]
+    pub duration_secs: u64,
+}
+
+/// Parameters for `task_cancellable` — a long-running operation that responds to cancellation.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct TaskCancellableParams {
+    /// Duration of the computation in seconds (default: 30)
+    #[serde(default = "default_cancellable_duration")]
+    pub duration_secs: u64,
+}
+
+/// Parameters for `task_fail` — starts a task that fails after a delay.
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct TaskFailParams {
+    /// Seconds to wait before failing (default: 2)
+    #[serde(default = "default_fail_duration")]
+    pub duration_secs: u64,
+    /// Error message to return on failure
+    #[serde(default = "default_fail_message")]
+    pub message: String,
+}
+
+const fn default_task_duration() -> u64 {
+    5
+}
+
+const fn default_cancellable_duration() -> u64 {
+    30
+}
+
+const fn default_fail_duration() -> u64 {
+    2
+}
+
+fn default_fail_message() -> String {
+    "Task failed as expected".to_string()
+}

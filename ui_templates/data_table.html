@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Table</title>
+<link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/css/tabulator_midnight.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--mcp-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    background: var(--mcp-bg, #0f172a);
+    color: var(--mcp-fg, #e2e8f0);
+    padding: 16px;
+    font-size: 13px;
+  }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  h2 { font-size: 15px; font-weight: 600; }
+  .status-pill {
+    font-size: 10px; padding: 3px 8px; border-radius: 10px;
+    background: #334155; color: #94a3b8;
+  }
+  .status-pill.on { background: #166534; color: #dcfce7; }
+  .controls { display: flex; gap: 8px; margin-bottom: 10px; }
+  input {
+    flex: 1; padding: 6px 10px; border: 1px solid #334155; border-radius: 4px;
+    font-size: 12px; background: #1e293b; color: #e2e8f0;
+  }
+  input::placeholder { color: #64748b; }
+  .actions { display: flex; gap: 8px; margin-top: 10px; }
+  button {
+    padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer;
+    font-size: 12px; font-weight: 500;
+  }
+  .btn-primary { background: #4f46e5; color: #fff; }
+  .btn-secondary { background: #334155; color: #e2e8f0; }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .log {
+    margin-top: 8px; font-size: 10px; color: #64748b; font-family: monospace;
+    max-height: 50px; overflow-y: auto;
+  }
+  .log div { padding: 1px 0; }
+  #table-container { border-radius: 6px; overflow: hidden; }
+  .csp-warn {
+    padding: 8px 12px; background: #451a03; border: 1px solid #92400e;
+    border-radius: 6px; font-size: 11px; color: #fcd34d; margin-bottom: 10px;
+    display: none;
+  }
+  /* Fallback table */
+  .fallback-table { width: 100%; border-collapse: collapse; }
+  .fallback-table th {
+    text-align: left; padding: 8px 6px; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;
+    border-bottom: 2px solid #334155; cursor: pointer;
+  }
+  .fallback-table th:hover { color: #818cf8; }
+  .fallback-table td { padding: 6px; border-bottom: 1px solid #1e293b; }
+  .fallback-table tr:hover { background: #1e293b; }
+  .fallback-table tr.selected { background: #312e81; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
+  }
+  .badge-healthy { background: #166534; color: #dcfce7; }
+  .badge-degraded { background: #92400e; color: #fef3c7; }
+  .badge-down { background: #991b1b; color: #fee2e2; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h2>MCP Tool Registry</h2>
+  <span class="status-pill" id="status">Offline</span>
+</div>
+
+<div class="csp-warn" id="csp-warn">
+  Tabulator failed to load (CSP restriction). Using built-in table.
+</div>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Filter tools by name, category, status...">
+</div>
+
+<div id="table-container"></div>
+
+<div class="actions">
+  <button class="btn-primary" id="btn-echo" disabled>Echo Selected</button>
+  <button class="btn-secondary" id="btn-refresh" disabled>Refresh</button>
+  <span style="flex:1"></span>
+  <span style="font-size:11px; color:#64748b; align-self:center" id="count"></span>
+</div>
+
+<div class="log" id="log"></div>
+
+<script>
+// {{MCP_APP_SHIM}}
+
+var app = new McpApp('Data Table', '1.0.0');
+var hasTabulator = typeof Tabulator !== 'undefined';
+var selected = null;
+var table = null;
+
+var tools = [
+  { name: 'add',            category: 'math',     status: 'healthy',  latency: 1,  params: 2, description: 'Add two numbers' },
+  { name: 'subtract',       category: 'math',     status: 'healthy',  latency: 1,  params: 2, description: 'Subtract numbers' },
+  { name: 'multiply',       category: 'math',     status: 'healthy',  latency: 1,  params: 2, description: 'Multiply numbers' },
+  { name: 'divide',         category: 'math',     status: 'healthy',  latency: 1,  params: 2, description: 'Divide numbers' },
+  { name: 'echo',           category: 'string',   status: 'healthy',  latency: 1,  params: 1, description: 'Echo input text' },
+  { name: 'concat',         category: 'string',   status: 'healthy',  latency: 1,  params: 1, description: 'Concatenate strings' },
+  { name: 'uppercase',      category: 'string',   status: 'healthy',  latency: 1,  params: 1, description: 'Convert to uppercase' },
+  { name: 'lowercase',      category: 'string',   status: 'healthy',  latency: 1,  params: 1, description: 'Convert to lowercase' },
+  { name: 'reverse',        category: 'string',   status: 'healthy',  latency: 1,  params: 1, description: 'Reverse a string' },
+  { name: 'sleep',          category: 'testing',  status: 'healthy',  latency: 50, params: 1, description: 'Sleep for N ms' },
+  { name: 'fail',           category: 'testing',  status: 'degraded', latency: 1,  params: 0, description: 'Always returns error' },
+  { name: 'task_slow_compute', category: 'tasks', status: 'healthy',  latency: 5000, params: 1, description: 'Async slow computation' },
+  { name: 'task_cancellable',  category: 'tasks', status: 'healthy',  latency: 30000, params: 1, description: 'Cancellable long-running op' },
+  { name: 'task_fail',      category: 'tasks',    status: 'degraded', latency: 2000, params: 2, description: 'Task that fails after delay' },
+];
+
+function log(msg) {
+  var el = document.getElementById('log');
+  var d = document.createElement('div');
+  d.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+  el.insertBefore(d, el.firstChild);
+  if (el.children.length > 20) el.removeChild(el.lastChild);
+}
+
+function statusFormatter(cell) {
+  var v = cell.getValue();
+  var cls = v === 'healthy' ? 'badge-healthy' : v === 'degraded' ? 'badge-degraded' : 'badge-down';
+  return '<span class="badge ' + cls + '">' + v + '</span>';
+}
+
+function latencyFormatter(cell) {
+  var v = cell.getValue();
+  var color = v < 50 ? '#22c55e' : v < 200 ? '#f59e0b' : '#ef4444';
+  return '<span style="color:' + color + '">' + v + 'ms</span>';
+}
+
+function initTabulator() {
+  table = new Tabulator('#table-container', {
+    data: tools,
+    layout: 'fitColumns',
+    selectable: 1,
+    rowHeight: 32,
+    columns: [
+      { title: 'Tool', field: 'name', sorter: 'string', headerFilter: false, widthGrow: 2 },
+      { title: 'Category', field: 'category', sorter: 'string', widthGrow: 1 },
+      { title: 'Status', field: 'status', formatter: statusFormatter, sorter: 'string', width: 90, hozAlign: 'center' },
+      { title: 'Latency', field: 'latency', formatter: latencyFormatter, sorter: 'number', width: 80, hozAlign: 'right' },
+      { title: 'Params', field: 'params', sorter: 'number', width: 65, hozAlign: 'center' },
+      { title: 'Description', field: 'description', sorter: 'string', widthGrow: 3 },
+    ],
+  });
+  table.on('rowSelected', function(row) {
+    selected = row.getData().name;
+    document.getElementById('btn-echo').disabled = false;
+  });
+  table.on('rowDeselected', function() {
+    selected = null;
+    document.getElementById('btn-echo').disabled = true;
+  });
+  document.getElementById('search').addEventListener('input', function() {
+    var val = this.value.toLowerCase();
+    table.setFilter(function(data) {
+      return data.name.toLowerCase().indexOf(val) !== -1 ||
+             data.category.toLowerCase().indexOf(val) !== -1 ||
+             data.status.toLowerCase().indexOf(val) !== -1;
+    });
+  });
+  updateCount();
+}
+
+/* Fallback: vanilla HTML table */
+var fbSortCol = 'name';
+var fbSortAsc = true;
+
+function initFallback() {
+  document.getElementById('csp-warn').style.display = 'block';
+  renderFallback();
+  document.getElementById('search').addEventListener('input', renderFallback);
+}
+
+function renderFallback() {
+  var search = document.getElementById('search').value.toLowerCase();
+  var filtered = tools.filter(function(s) {
+    return s.name.indexOf(search) !== -1 || s.category.indexOf(search) !== -1 || s.status.indexOf(search) !== -1;
+  });
+  filtered.sort(function(a, b) {
+    var va = a[fbSortCol], vb = b[fbSortCol];
+    if (typeof va === 'number') return fbSortAsc ? va - vb : vb - va;
+    return fbSortAsc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+  var container = document.getElementById('table-container');
+  var cols = ['name','category','status','latency','params','description'];
+  var titles = ['Tool','Category','Status','Latency','Params','Description'];
+  var html = '<table class="fallback-table"><thead><tr>';
+  for (var i = 0; i < cols.length; i++) {
+    html += '<th data-col="' + cols[i] + '">' + titles[i] + '</th>';
+  }
+  html += '</tr></thead><tbody>';
+  for (var j = 0; j < filtered.length; j++) {
+    var s = filtered[j];
+    var sel = selected === s.name ? ' class="selected"' : '';
+    var cls = s.status === 'healthy' ? 'badge-healthy' : s.status === 'degraded' ? 'badge-degraded' : 'badge-down';
+    var latColor = s.latency < 50 ? '#22c55e' : s.latency < 200 ? '#f59e0b' : '#ef4444';
+    html += '<tr' + sel + ' data-name="' + s.name + '">' +
+      '<td>' + s.name + '</td>' +
+      '<td>' + s.category + '</td>' +
+      '<td><span class="badge ' + cls + '">' + s.status + '</span></td>' +
+      '<td style="color:' + latColor + '">' + s.latency + 'ms</td>' +
+      '<td>' + s.params + '</td>' +
+      '<td>' + s.description + '</td>' +
+      '</tr>';
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+
+  container.querySelectorAll('th').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = this.dataset.col;
+      if (fbSortCol === col) fbSortAsc = !fbSortAsc;
+      else { fbSortCol = col; fbSortAsc = true; }
+      renderFallback();
+    });
+  });
+  container.querySelectorAll('tr[data-name]').forEach(function(tr) {
+    tr.addEventListener('click', function() {
+      selected = this.dataset.name;
+      document.getElementById('btn-echo').disabled = false;
+      renderFallback();
+    });
+  });
+  document.getElementById('count').textContent = filtered.length + ' tools';
+}
+
+function updateCount() {
+  if (table) {
+    document.getElementById('count').textContent = table.getDataCount('active') + ' tools';
+  }
+}
+
+function echoSelected() {
+  if (!selected) return;
+  document.getElementById('btn-echo').disabled = true;
+  app.callServerTool('echo', { text: 'selected_tool: ' + selected }).then(function(r) {
+    var data = r.content && r.content[0] && r.content[0].text;
+    log('Echo: ' + (data || 'ok'));
+    document.getElementById('btn-echo').disabled = false;
+  }).catch(function(e) {
+    log('Error: ' + (e.message || e));
+    document.getElementById('btn-echo').disabled = false;
+  });
+}
+
+app.connect().then(function() {
+  document.getElementById('status').textContent = 'Connected';
+  document.getElementById('status').className = 'status-pill on';
+  document.getElementById('btn-echo').disabled = true;
+  document.getElementById('btn-refresh').disabled = false;
+  if (hasTabulator) initTabulator();
+  else initFallback();
+  log('Connected. ' + (hasTabulator ? 'Tabulator loaded.' : 'Fallback table.'));
+}).catch(function(e) {
+  document.getElementById('status').textContent = 'Error';
+  log('Connection error');
+});
+
+document.getElementById('btn-echo').addEventListener('click', echoSelected);
+document.getElementById('btn-refresh').addEventListener('click', function() {
+  app.callServerTool('current_time', {}).then(function(r) {
+    var data = r.content && r.content[0] && r.content[0].text;
+    log('Refreshed at ' + (data || new Date().toISOString()));
+    if (hasTabulator && table) { table.setData(tools); updateCount(); }
+    else renderFallback();
+  });
+});
+</script>
+</body>
+</html>

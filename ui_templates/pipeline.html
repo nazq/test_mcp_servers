@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pipeline Visualizer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--mcp-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+    background: var(--mcp-bg, #0f172a);
+    color: var(--mcp-fg, #e2e8f0);
+    padding: 16px;
+  }
+  h2 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 11px; color: #64748b; margin-bottom: 14px; }
+  .status-bar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    font-size: 11px; color: #94a3b8;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+  .dot.on { background: #22c55e; }
+
+  .pipeline {
+    display: flex; align-items: center; gap: 0; margin-bottom: 16px;
+    overflow-x: auto; padding: 8px 0;
+  }
+  .stage {
+    display: flex; flex-direction: column; align-items: center; min-width: 100px;
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .stage:hover { transform: scale(1.05); }
+  .stage-box {
+    width: 90px; height: 60px; border-radius: 8px; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    border: 2px solid #334155; transition: all 0.3s ease; position: relative;
+    overflow: hidden;
+  }
+  .stage-box.pending { border-color: #334155; background: #1e293b; }
+  .stage-box.running { border-color: #6366f1; background: #1e1b4b; }
+  .stage-box.success { border-color: #22c55e; background: #052e16; }
+  .stage-box.failed { border-color: #ef4444; background: #450a0a; }
+  .stage-box.skipped { border-color: #64748b; background: #1e293b; opacity: 0.5; }
+
+  .stage-icon { font-size: 18px; margin-bottom: 2px; }
+  .stage-label { font-size: 10px; font-weight: 500; }
+  .stage-time { font-size: 9px; color: #64748b; margin-top: 4px; }
+
+  .stage-box.running::after {
+    content: ''; position: absolute; bottom: 0; left: 0; height: 3px;
+    background: #6366f1; animation: progress 1.5s ease-in-out infinite;
+  }
+  @keyframes progress { 0% { width: 0; } 50% { width: 100%; } 100% { width: 0; } }
+
+  .connector {
+    width: 30px; height: 2px; background: #334155; flex-shrink: 0;
+    position: relative;
+  }
+  .connector.active { background: #22c55e; }
+  .connector::after {
+    content: ''; position: absolute; right: -4px; top: -3px;
+    border: 4px solid transparent; border-left: 6px solid #334155;
+  }
+  .connector.active::after { border-left-color: #22c55e; }
+
+  .details {
+    background: #1e293b; border-radius: 8px; padding: 12px;
+    border: 1px solid #334155; margin-bottom: 14px;
+  }
+  .details h3 { font-size: 13px; margin-bottom: 8px; }
+  .detail-row {
+    display: flex; justify-content: space-between; padding: 4px 0;
+    font-size: 11px; border-bottom: 1px solid #0f172a;
+  }
+  .detail-label { color: #64748b; }
+  .detail-value { font-weight: 500; }
+
+  .controls { display: flex; gap: 8px; }
+  button {
+    flex: 1; padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 500; transition: all 0.15s;
+  }
+  .btn-run { background: #22c55e; color: #052e16; }
+  .btn-reset { background: #334155; color: #e2e8f0; }
+  .btn-run:hover, .btn-reset:hover { filter: brightness(1.15); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .log {
+    margin-top: 10px; font-size: 10px; color: #64748b; font-family: monospace;
+    max-height: 80px; overflow-y: auto; background: #0f172a;
+    border-radius: 4px; padding: 6px;
+  }
+  .log div { padding: 1px 0; }
+  .log .err { color: #ef4444; }
+  .log .ok { color: #22c55e; }
+</style>
+</head>
+<body>
+<h2>Data Pipeline Visualizer</h2>
+<div class="subtitle">Simulated ETL pipeline &mdash; click stages or run all</div>
+
+<div class="status-bar">
+  <div class="dot" id="dot"></div>
+  <span id="status">Connecting...</span>
+</div>
+
+<div class="pipeline" id="pipeline"></div>
+
+<div class="details" id="details">
+  <h3 id="detail-title">Select a stage</h3>
+  <div id="detail-body">
+    <div class="detail-row"><span class="detail-label">Click a stage to view details</span></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-run" id="btn-run" disabled>Run Pipeline</button>
+  <button class="btn-reset" id="btn-reset" disabled>Reset</button>
+</div>
+
+<div class="log" id="log"></div>
+
+<script>
+// {{MCP_APP_SHIM}}
+
+var app = new McpApp('Pipeline', '1.0.0');
+
+var stages = [
+  { id: 'extract',   label: 'Extract',   icon: '\u{1F4E5}', tool: 'echo', args: { text: 'extract: pulling data from source' } },
+  { id: 'validate',  label: 'Validate',  icon: '\u2705',     tool: 'echo', args: { text: 'validate: schema check passed' } },
+  { id: 'transform', label: 'Transform', icon: '\u2699\uFE0F', tool: 'add', args: { a: 42, b: 58 } },
+  { id: 'enrich',    label: 'Enrich',    icon: '\u2728',     tool: 'echo', args: { text: 'enrich: added metadata fields' } },
+  { id: 'load',      label: 'Load',      icon: '\u{1F4E4}', tool: 'echo', args: { text: 'load: written to destination' } },
+  { id: 'verify',    label: 'Verify',    icon: '\u{1F50D}', tool: 'current_time', args: {} },
+];
+
+var stageState = {};
+stages.forEach(function(s) { stageState[s.id] = { status: 'pending', time: null, result: null }; });
+
+function log(msg, cls) {
+  var el = document.getElementById('log');
+  var d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+  el.insertBefore(d, el.firstChild);
+  if (el.children.length > 40) el.removeChild(el.lastChild);
+}
+
+function renderPipeline() {
+  var container = document.getElementById('pipeline');
+  container.innerHTML = '';
+  for (var i = 0; i < stages.length; i++) {
+    var s = stages[i];
+    var st = stageState[s.id];
+    var stageEl = document.createElement('div');
+    stageEl.className = 'stage';
+    stageEl.dataset.id = s.id;
+
+    var box = document.createElement('div');
+    box.className = 'stage-box ' + st.status;
+    box.innerHTML = '<div class="stage-icon">' + s.icon + '</div>' +
+      '<div class="stage-label">' + s.label + '</div>';
+    stageEl.appendChild(box);
+
+    var time = document.createElement('div');
+    time.className = 'stage-time';
+    time.textContent = st.time !== null ? st.time + 'ms' : '';
+    stageEl.appendChild(time);
+
+    stageEl.addEventListener('click', (function(sid) {
+      return function() { showDetails(sid); };
+    })(s.id));
+
+    container.appendChild(stageEl);
+
+    if (i < stages.length - 1) {
+      var conn = document.createElement('div');
+      conn.className = 'connector';
+      var nextState = stageState[stages[i + 1].id];
+      if (st.status === 'success' && (nextState.status !== 'pending')) {
+        conn.className += ' active';
+      }
+      container.appendChild(conn);
+    }
+  }
+}
+
+function showDetails(stageId) {
+  var s = stages.find(function(x) { return x.id === stageId; });
+  var st = stageState[stageId];
+  document.getElementById('detail-title').textContent = s.icon + ' ' + s.label;
+  var body = document.getElementById('detail-body');
+  var rows = [
+    ['Status', st.status],
+    ['Tool', s.tool],
+    ['Duration', st.time !== null ? st.time + 'ms' : '-'],
+  ];
+  if (st.result) rows.push(['Result', st.result]);
+  body.innerHTML = rows.map(function(r) {
+    return '<div class="detail-row"><span class="detail-label">' + r[0] +
+      '</span><span class="detail-value">' + r[1] + '</span></div>';
+  }).join('');
+}
+
+async function runStage(stageId) {
+  var s = stages.find(function(x) { return x.id === stageId; });
+  stageState[stageId].status = 'running';
+  stageState[stageId].time = null;
+  stageState[stageId].result = null;
+  renderPipeline();
+  log('Running: ' + s.label);
+
+  var t0 = performance.now();
+  try {
+    var r = await app.callServerTool(s.tool, s.args);
+    var ms = Math.round(performance.now() - t0);
+    stageState[stageId].time = ms;
+    var data = r.content && r.content[0] && r.content[0].text;
+    stageState[stageId].result = data ? data.substring(0, 80) : 'ok';
+    stageState[stageId].status = 'success';
+    log(s.label + ': done (' + ms + 'ms)', 'ok');
+  } catch(e) {
+    var ms2 = Math.round(performance.now() - t0);
+    stageState[stageId].time = ms2;
+    stageState[stageId].status = 'failed';
+    stageState[stageId].result = e.message || 'error';
+    log(s.label + ': FAILED - ' + (e.message || e), 'err');
+  }
+  renderPipeline();
+  showDetails(stageId);
+}
+
+async function runAll() {
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-reset').disabled = true;
+  log('Pipeline started', 'ok');
+  for (var i = 0; i < stages.length; i++) {
+    await runStage(stages[i].id);
+    if (stageState[stages[i].id].status === 'failed') {
+      // Mark remaining as skipped
+      for (var j = i + 1; j < stages.length; j++) {
+        stageState[stages[j].id].status = 'skipped';
+      }
+      renderPipeline();
+      log('Pipeline FAILED at ' + stages[i].label, 'err');
+      document.getElementById('btn-run').disabled = false;
+      document.getElementById('btn-reset').disabled = false;
+      return;
+    }
+  }
+  log('Pipeline completed successfully', 'ok');
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-reset').disabled = false;
+}
+
+function reset() {
+  stages.forEach(function(s) {
+    stageState[s.id] = { status: 'pending', time: null, result: null };
+  });
+  renderPipeline();
+  document.getElementById('detail-title').textContent = 'Select a stage';
+  document.getElementById('detail-body').innerHTML =
+    '<div class="detail-row"><span class="detail-label">Click a stage to view details</span></div>';
+  log('Pipeline reset');
+}
+
+app.connect().then(function() {
+  document.getElementById('dot').className = 'dot on';
+  document.getElementById('status').textContent = 'Connected';
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-reset').disabled = false;
+  renderPipeline();
+  log('Connected to MCP host');
+}).catch(function(e) {
+  document.getElementById('status').textContent = 'Error: ' + (e.message || e);
+});
+
+document.getElementById('btn-run').addEventListener('click', runAll);
+document.getElementById('btn-reset').addEventListener('click', reset);
+</script>
+</body>
+</html>

@@ -39,3 +39,27 @@ super::empty_params_schema!(
     UiInternalOnlyParams,
     "Parameters for the `ui_internal_only` tool (no input needed)."
 );
+
+/// Parameters for the `ui_resource_dashboard` tool (no input needed).
+#[derive(Debug, Deserialize)]
+pub struct UiResourceDashboardParams {}
+super::empty_params_schema!(
+    UiResourceDashboardParams,
+    "Parameters for the `ui_resource_dashboard` tool (no input needed)."
+);
+
+/// Parameters for the `ui_resource_data_table` tool (no input needed).
+#[derive(Debug, Deserialize)]
+pub struct UiResourceDataTableParams {}
+super::empty_params_schema!(
+    UiResourceDataTableParams,
+    "Parameters for the `ui_resource_data_table` tool (no input needed)."
+);
+
+/// Parameters for the `ui_resource_pipeline` tool (no input needed).
+#[derive(Debug, Deserialize)]
+pub struct UiResourcePipelineParams {}
+super::empty_params_schema!(
+    UiResourcePipelineParams,
+    "Parameters for the `ui_resource_pipeline` tool (no input needed)."
+);

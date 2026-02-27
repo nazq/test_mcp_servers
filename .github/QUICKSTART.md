@@ -129,7 +129,7 @@ After setup, verify:
 1. release-plz creates git tag (e.g., `v1.0.0`)
 2. Tag push triggers release workflow:
    - Builds multi-arch Docker images
-   - Pushes to ghcr.io/nazq/test_mcp_servers
+   - Pushes to ghcr.io/nazq/mcp-test-server
    - Creates GitHub release
 
 ## Testing Locally

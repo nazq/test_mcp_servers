@@ -23,10 +23,12 @@ The server is containerized and designed to be ephemeral—spin it up, run your 
 
 - **Full MCP 2025-11-25 specification compliance**
 - **Streamable HTTP transport** (`/mcp` endpoint)
-- **[MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps) support** — interactive UI tools with `_meta.ui.resourceUri`, served via `resources/read`
+- **OAuth 2.1 mock endpoints** — full RFC 9728/8414/7591 discovery, DCR, PKCE, and token exchange
+- **MCP Tasks support** — async long-running operations with cancellation
+- **[MCP Apps](https://modelcontextprotocol.io/docs/extensions/apps) support** — 7 interactive UI tools with `_meta.ui.resourceUri`, served via `resources/read`
 - **API key authentication** with constant-time comparison
-- **28 tools** for comprehensive testing (math, string, encoding, utility, testing, MCP Apps)
-- **11 resources** (static, dynamic, and `ui://` app resources) with subscription support
+- **33 tools** for comprehensive testing (math, string, encoding, utility, testing, tasks, MCP Apps)
+- **14 resources** (static, dynamic, and `ui://` app resources) with subscription support
 - **5 prompts** with argument validation
 - **Auto-completion** for prompt arguments and resource URIs
 - **Logging level control** via MCP protocol
@@ -36,7 +38,7 @@ The server is containerized and designed to be ephemeral—spin it up, run your 
 ### Using Docker
 
 ```bash
-docker run -p 3000:3000 ghcr.io/nazq/test_mcp_servers:latest
+docker run -p 3000:3000 ghcr.io/nazq/mcp-test-server:latest
 ```
 
 ### From Source
@@ -68,9 +70,16 @@ All configuration is done via environment variables:
 ### Health Check
 - `GET /health` - Returns `{"status": "ok"}` (no authentication required)
 
+### OAuth 2.1 Mock Endpoints
+- `GET /.well-known/oauth-protected-resource` - RFC 9728 protected resource metadata
+- `GET /.well-known/oauth-authorization-server` - RFC 8414 authorization server metadata
+- `POST /oauth/register` - RFC 7591 dynamic client registration
+- `GET /oauth/authorize` - Authorization endpoint (auto-approves for testing)
+- `POST /oauth/token` - Token endpoint (authorization_code + refresh_token grants)
+
 ## Tools
 
-The server provides 25 tools organized by category:
+The server provides 33 tools organized by category:
 
 ### Math Tools
 | Tool | Description |
@@ -116,18 +125,38 @@ The server provides 25 tools organized by category:
 | `nested_data` | Generate deeply nested JSON |
 | `large_response` | Generate large text payload |
 | `binary_data` | Generate random binary data (base64) |
+| `noop` | No-op tool that returns immediately |
+
+### Task Tools (MCP Tasks)
+
+These tools support the [MCP Tasks](https://modelcontextprotocol.io/specification/2025-11-25/server/tasks) extension for async long-running operations. When called via `enqueue_task`, they run in the background and clients poll for status and results.
+
+| Tool | Description |
+|------|-------------|
+| `task_slow_compute` | Simulate a slow computation (default: 5s), supports cancellation |
+| `task_cancellable` | Long-running cancellable operation (default: 30s) |
+| `task_fail` | Task that fails after a delay (default: 2s) with custom error |
 
 ### MCP App Tools
 
 These tools implement the [MCP Apps extension](https://modelcontextprotocol.io/docs/extensions/apps). Each declares `_meta.ui.resourceUri` on the tool description, telling compatible hosts (VS Code Insiders, Claude Desktop) to fetch interactive HTML via `resources/read` and render it in a sandboxed iframe. The tool result is plain text — the UI loads independently.
 
+#### Basic UI Tools
 | Tool | `resourceUri` | Description |
 |------|---------------|-------------|
 | `ui_resource_button` | `ui://button/app.html` | Single button that calls the `echo` tool via JSON-RPC bridge |
 | `ui_resource_form` | `ui://form/app.html` | Form that calls the `concat` tool via JSON-RPC bridge |
 | `ui_resource_carousel` | `ui://carousel/app.html` | 3-card carousel, each card calls `echo` via JSON-RPC bridge |
+| `ui_internal_only` | `ui://internal_only/app.html` | App-only tool (hidden from LLM, tests visibility filtering) |
 
-The HTML templates include a JSON-RPC shim (`mcp-app-shim.js`) that handles `window.postMessage` ↔ host bridging per the MCP Apps spec.
+#### Rich UI Tools
+| Tool | `resourceUri` | Description |
+|------|---------------|-------------|
+| `ui_resource_dashboard` | `ui://dashboard/app.html` | Chart.js dashboard with tool call metrics and live data visualization |
+| `ui_resource_data_table` | `ui://data_table/app.html` | Tabulator.js data table with filtering, sorting, and vanilla fallback |
+| `ui_resource_pipeline` | `ui://pipeline/app.html` | Interactive ETL pipeline visualizer with stage-by-stage execution |
+
+The HTML templates include a JSON-RPC shim (`mcp-app-shim.js`) that handles `window.postMessage` ↔ host bridging per the MCP Apps spec. Rich UI tools load CDN libraries (Chart.js, Tabulator) with graceful fallback to vanilla HTML/JS when CSP blocks them.
 
 ## Resources
 
@@ -142,9 +171,13 @@ The HTML templates include a JSON-RPC shim (`mcp-app-shim.js`) that handles `win
 ### MCP App Resources
 | URI | Type | Description |
 |-----|------|-------------|
-| `ui://button/app.html` | application/x-mcp-app+html | Interactive button app |
-| `ui://form/app.html` | application/x-mcp-app+html | Interactive form app |
-| `ui://carousel/app.html` | application/x-mcp-app+html | Interactive 3-card carousel app |
+| `ui://button/app.html` | text/html;profile=mcp-app | Interactive button app |
+| `ui://form/app.html` | text/html;profile=mcp-app | Interactive form app |
+| `ui://carousel/app.html` | text/html;profile=mcp-app | Interactive 3-card carousel app |
+| `ui://internal_only/app.html` | text/html;profile=mcp-app | Internal-only app (visibility test) |
+| `ui://dashboard/app.html` | text/html;profile=mcp-app | Chart.js dashboard with metrics |
+| `ui://data_table/app.html` | text/html;profile=mcp-app | Tabulator.js data table |
+| `ui://pipeline/app.html` | text/html;profile=mcp-app | ETL pipeline visualizer |
 
 ### Dynamic Resources
 | URI | Type | Description |
@@ -179,6 +212,20 @@ The server provides completions for prompt arguments:
 And for resource templates:
 - `test://files/{path}`: example.txt, data.json, config.yaml
 
+## OAuth 2.1 Mock
+
+The server includes a complete OAuth 2.1 mock implementation for testing MCP client authentication flows. All endpoints are served alongside the MCP server — no external identity provider needed.
+
+**Flow:**
+
+1. **Discovery** — Client fetches `/.well-known/oauth-protected-resource` (RFC 9728) to find the authorization server, then `/.well-known/oauth-authorization-server` (RFC 8414) for endpoint URLs
+2. **Registration** — Client registers via `POST /oauth/register` (RFC 7591 DCR), receives a `client_id`
+3. **Authorization** — Client redirects to `/oauth/authorize` with PKCE challenge; the mock auto-approves and redirects back with an authorization code
+4. **Token Exchange** — Client exchanges the code at `POST /oauth/token` for an access token + refresh token
+5. **API Access** — Client uses `Authorization: Bearer <token>` on `/mcp`
+
+All tokens are test-only opaque strings (no JWT). PKCE is supported but verification is simplified for testing.
+
 ## Security
 
 ### API Key Authentication
@@ -201,7 +248,7 @@ The server validates `Origin` headers to prevent DNS rebinding attacks. Allowed 
 
 ### Requirements
 
-- Rust 1.85+ (edition 2024)
+- Rust 1.88+ (edition 2024)
 - Docker (optional, for containerized builds)
 
 ### Building

@@ -250,6 +250,102 @@ pub fn get_internal_only_app_content() -> ResourceContents {
     }
 }
 
+/// Get the dashboard app UI resource.
+#[must_use]
+pub fn get_dashboard_app_resource() -> Resource {
+    RawResource {
+        uri: "ui://dashboard/app.html".to_string(),
+        name: "dashboard-app".to_string(),
+        title: Some("Dashboard App".to_string()),
+        description: Some(
+            "Interactive dashboard with Chart.js charts and tool call metrics".to_string(),
+        ),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        size: None,
+        icons: None,
+        meta: None,
+    }
+    .no_annotation()
+}
+
+/// Get the dashboard app HTML content with the MCP App shim inlined.
+#[must_use]
+pub fn get_dashboard_app_content() -> ResourceContents {
+    let shim = include_str!("../../ui_templates/mcp-app-shim.js");
+    let html =
+        include_str!("../../ui_templates/dashboard.html").replace("// {{MCP_APP_SHIM}}", shim);
+    ResourceContents::TextResourceContents {
+        uri: "ui://dashboard/app.html".to_string(),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        text: html,
+        meta: None,
+    }
+}
+
+/// Get the data table app UI resource.
+#[must_use]
+pub fn get_data_table_app_resource() -> Resource {
+    RawResource {
+        uri: "ui://data_table/app.html".to_string(),
+        name: "data-table-app".to_string(),
+        title: Some("Data Table App".to_string()),
+        description: Some(
+            "Filterable tool registry table with Tabulator.js and vanilla fallback".to_string(),
+        ),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        size: None,
+        icons: None,
+        meta: None,
+    }
+    .no_annotation()
+}
+
+/// Get the data table app HTML content with the MCP App shim inlined.
+#[must_use]
+pub fn get_data_table_app_content() -> ResourceContents {
+    let shim = include_str!("../../ui_templates/mcp-app-shim.js");
+    let html =
+        include_str!("../../ui_templates/data_table.html").replace("// {{MCP_APP_SHIM}}", shim);
+    ResourceContents::TextResourceContents {
+        uri: "ui://data_table/app.html".to_string(),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        text: html,
+        meta: None,
+    }
+}
+
+/// Get the pipeline app UI resource.
+#[must_use]
+pub fn get_pipeline_app_resource() -> Resource {
+    RawResource {
+        uri: "ui://pipeline/app.html".to_string(),
+        name: "pipeline-app".to_string(),
+        title: Some("Pipeline Visualizer App".to_string()),
+        description: Some(
+            "Interactive ETL pipeline visualizer with stage-by-stage execution".to_string(),
+        ),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        size: None,
+        icons: None,
+        meta: None,
+    }
+    .no_annotation()
+}
+
+/// Get the pipeline app HTML content with the MCP App shim inlined.
+#[must_use]
+pub fn get_pipeline_app_content() -> ResourceContents {
+    let shim = include_str!("../../ui_templates/mcp-app-shim.js");
+    let html =
+        include_str!("../../ui_templates/pipeline.html").replace("// {{MCP_APP_SHIM}}", shim);
+    ResourceContents::TextResourceContents {
+        uri: "ui://pipeline/app.html".to_string(),
+        mime_type: Some(MCP_APP_MIME_TYPE.to_string()),
+        text: html,
+        meta: None,
+    }
+}
+
 /// Get all static resources.
 #[must_use]
 pub fn list_static_resources() -> Vec<Resource> {
@@ -262,6 +358,9 @@ pub fn list_static_resources() -> Vec<Resource> {
         get_form_app_resource(),
         get_carousel_app_resource(),
         get_internal_only_app_resource(),
+        get_dashboard_app_resource(),
+        get_data_table_app_resource(),
+        get_pipeline_app_resource(),
     ]
 }
 
@@ -277,6 +376,9 @@ pub fn read_static_resource(uri: &str) -> Option<ResourceContents> {
         "ui://form/app.html" => Some(get_form_app_content()),
         "ui://carousel/app.html" => Some(get_carousel_app_content()),
         "ui://internal_only/app.html" => Some(get_internal_only_app_content()),
+        "ui://dashboard/app.html" => Some(get_dashboard_app_content()),
+        "ui://data_table/app.html" => Some(get_data_table_app_content()),
+        "ui://pipeline/app.html" => Some(get_pipeline_app_content()),
         _ => None,
     }
 }
