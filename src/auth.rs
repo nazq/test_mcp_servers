@@ -94,6 +94,7 @@ impl IntoResponse for AuthError {
 /// - API key is required but missing
 /// - API key is invalid
 /// - Origin is present but not allowed
+#[allow(clippy::cognitive_complexity)]
 pub async fn auth_middleware(
     State(config): State<Config>,
     request: Request<Body>,

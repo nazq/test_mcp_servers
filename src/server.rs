@@ -139,6 +139,7 @@ impl McpTestServer {
     /// # Panics
     ///
     /// Panics if the Ctrl+C signal handler cannot be installed.
+    #[allow(clippy::cognitive_complexity)]
     pub async fn run(&self) -> anyhow::Result<()> {
         let addr = std::net::SocketAddr::new(self.config.host, self.config.port);
         tracing::info!(%addr, "Starting MCP Test Server");
