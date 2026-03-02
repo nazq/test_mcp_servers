@@ -14,7 +14,7 @@ readme = "README.md"
 # MCP Server SDK
 # Note: SSE transport is deprecated in 0.10 and removed in 0.11
 # We've pre-emptively removed SSE support for forward compatibility
-rmcp = { version = "0.16", features = [
+rmcp = { version = "0.17", features = [
     "server",
     "macros",
     "transport-streamable-http-server",
