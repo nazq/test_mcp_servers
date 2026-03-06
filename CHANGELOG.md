@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-03-06
+
+### Documentation
+
+- Remove temp planning docs, consolidate CI/CD documentation ([#41](https://github.com/nazq/test_mcp_servers/pull/41))
+
+### Features
+
+- Upgrade rmcp SDK from 0.16 to 1.x ([#46](https://github.com/nazq/test_mcp_servers/pull/46)) **BREAKING**
+
+
 ### Changed
 
 - **BREAKING**: Upgrade rmcp SDK from 0.16 to 1.x
