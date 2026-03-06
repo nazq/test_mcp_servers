@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: Upgrade rmcp SDK from 0.16 to 1.x
+  - All model structs now use `#[non_exhaustive]` — migrated from struct literals to `::new()` + `.with_*()` builder pattern
+  - `ProtocolVersion::LATEST` is `2025-06-18` in rmcp 1.x (SDK has not yet added `2025-11-25`)
+  - `CompletionInfo::new()` now validates MAX_VALUES=100
+  - Paginated results use `::with_all_items()` constructor
+  - Filed upstream fix for `#[task_handler]` macro deprecated type aliases ([rust-sdk#727](https://github.com/modelcontextprotocol/rust-sdk/pull/727))
+
 ## [2.0.0] - 2026-02-27
 
 ### Dependencies

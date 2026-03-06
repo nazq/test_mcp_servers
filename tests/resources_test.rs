@@ -283,10 +283,9 @@ fn test_resource_handler_list_templates() {
 #[test]
 fn test_resource_handler_read_static() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParams {
-        uri: "test://static/hello.txt".to_string(),
-        meta: None,
-    };
+    let request = ReadResourceRequestParams::new(
+        "test://static/hello.txt".to_string())
+    ;
     let result = handler.read_resource(&request).unwrap();
 
     assert_eq!(result.contents.len(), 1);
@@ -295,10 +294,9 @@ fn test_resource_handler_read_static() {
 #[test]
 fn test_resource_handler_read_dynamic_counter() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParams {
-        uri: "test://dynamic/counter".to_string(),
-        meta: None,
-    };
+    let request = ReadResourceRequestParams::new(
+        "test://dynamic/counter".to_string())
+    ;
 
     // Counter should increment on each read
     let result1 = handler.read_resource(&request).unwrap();
@@ -320,10 +318,9 @@ fn test_resource_handler_read_dynamic_counter() {
 #[test]
 fn test_resource_handler_read_template() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParams {
-        uri: "test://files/example.txt".to_string(),
-        meta: None,
-    };
+    let request = ReadResourceRequestParams::new(
+        "test://files/example.txt".to_string())
+    ;
     let result = handler.read_resource(&request).unwrap();
 
     match &result.contents[0] {
@@ -337,10 +334,9 @@ fn test_resource_handler_read_template() {
 #[test]
 fn test_resource_handler_read_unknown() {
     let handler = ResourceHandler::new();
-    let request = ReadResourceRequestParams {
-        uri: "test://nonexistent".to_string(),
-        meta: None,
-    };
+    let request = ReadResourceRequestParams::new(
+        "test://nonexistent".to_string())
+    ;
     let result = handler.read_resource(&request);
 
     assert!(result.is_err());
@@ -349,10 +345,9 @@ fn test_resource_handler_read_unknown() {
 #[test]
 fn test_resource_handler_subscribe_random() {
     let handler = ResourceHandler::new();
-    let request = SubscribeRequestParams {
-        uri: "test://dynamic/random".to_string(),
-        meta: None,
-    };
+    let request = SubscribeRequestParams::new(
+        "test://dynamic/random".to_string())
+    ;
     let result = handler.subscribe(&request);
 
     assert!(result.is_ok());
@@ -361,10 +356,9 @@ fn test_resource_handler_subscribe_random() {
 #[test]
 fn test_resource_handler_subscribe_non_subscribable() {
     let handler = ResourceHandler::new();
-    let request = SubscribeRequestParams {
-        uri: "test://static/hello.txt".to_string(),
-        meta: None,
-    };
+    let request = SubscribeRequestParams::new(
+        "test://static/hello.txt".to_string())
+    ;
     let result = handler.subscribe(&request);
 
     assert!(result.is_err());

@@ -177,10 +177,9 @@ mod resources_compliance {
         ];
 
         for uri in test_uris {
-            let request = ReadResourceRequestParams {
-                uri: uri.to_string(),
-                meta: None,
-            };
+            let request = ReadResourceRequestParams::new(
+                uri.to_string())
+            ;
             let result = handler.read_resource(&request).unwrap();
 
             for content in &result.contents {
@@ -211,10 +210,9 @@ mod resources_compliance {
     #[test]
     fn test_unknown_resource_returns_error() {
         let handler = ResourceHandler::new();
-        let request = ReadResourceRequestParams {
-            uri: "test://nonexistent/resource".to_string(),
-            meta: None,
-        };
+        let request = ReadResourceRequestParams::new(
+            "test://nonexistent/resource".to_string())
+        ;
 
         let result = handler.read_resource(&request);
         assert!(result.is_err(), "Unknown resource should return error");
@@ -240,10 +238,9 @@ mod resources_compliance {
     #[test]
     fn test_subscription_to_supported_resource_succeeds() {
         let handler = ResourceHandler::new();
-        let request = SubscribeRequestParams {
-            uri: "test://dynamic/random".to_string(),
-            meta: None,
-        };
+        let request = SubscribeRequestParams::new(
+            "test://dynamic/random".to_string())
+        ;
 
         let result = handler.subscribe(&request);
         assert!(
@@ -256,10 +253,9 @@ mod resources_compliance {
     #[test]
     fn test_subscription_to_non_subscribable_fails() {
         let handler = ResourceHandler::new();
-        let request = SubscribeRequestParams {
-            uri: "test://static/hello.txt".to_string(),
-            meta: None,
-        };
+        let request = SubscribeRequestParams::new(
+            "test://static/hello.txt".to_string())
+        ;
 
         let result = handler.subscribe(&request);
         assert!(
@@ -272,10 +268,9 @@ mod resources_compliance {
     #[test]
     fn test_content_has_uri_and_mimetype() {
         let handler = ResourceHandler::new();
-        let request = ReadResourceRequestParams {
-            uri: "test://static/hello.txt".to_string(),
-            meta: None,
-        };
+        let request = ReadResourceRequestParams::new(
+            "test://static/hello.txt".to_string())
+        ;
 
         let result = handler.read_resource(&request).unwrap();
 
@@ -505,10 +500,8 @@ mod pagination_compliance {
         assert!(result.is_ok());
 
         // Should accept Some cursor (even if not used)
-        let result = handler.list_resources(Some(PaginatedRequestParams {
-            cursor: None,
-            meta: None,
-        }));
+        let result = handler.list_resources(Some(PaginatedRequestParams::default()
+        ));
         assert!(result.is_ok());
     }
 
@@ -562,10 +555,9 @@ mod error_handling_compliance {
     #[test]
     fn test_invalid_resource_uri_returns_error() {
         let handler = ResourceHandler::new();
-        let request = ReadResourceRequestParams {
-            uri: "invalid://not/a/valid/resource".to_string(),
-            meta: None,
-        };
+        let request = ReadResourceRequestParams::new(
+            "invalid://not/a/valid/resource".to_string())
+        ;
 
         let result = handler.read_resource(&request);
         assert!(result.is_err(), "Invalid resource URI should return error");

@@ -13,7 +13,7 @@
 //!
 //! # Features
 //!
-//! - Full MCP 2025-11-25 specification compliance
+//! - Full MCP 2025-11-25 specification compliance (rmcp 1.x SDK)
 //! - Streamable HTTP transport (`/mcp` endpoint)
 //! - API key authentication via `Authorization: Bearer` header
 //! - OAuth 2.1 mock endpoints for testing client authentication flows

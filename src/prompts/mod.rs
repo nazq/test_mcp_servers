@@ -88,10 +88,11 @@ impl McpTestServer {
         let arguments = convert_json_args(request.arguments);
         let (messages, description) = get_prompt_by_name(&request.name, &arguments)?;
 
-        Ok(GetPromptResult {
-            description,
-            messages,
-        })
+        let mut result = GetPromptResult::new(messages);
+        if let Some(desc) = description {
+            result = result.with_description(desc);
+        }
+        Ok(result)
     }
 }
 
