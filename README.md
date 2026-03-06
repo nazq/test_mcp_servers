@@ -21,7 +21,7 @@ The server is containerized and designed to be ephemeral—spin it up, run your 
 
 ## Features
 
-- **Full MCP 2025-11-25 specification compliance**
+- **Full MCP 2025-11-25 specification compliance** (rmcp 1.x SDK)
 - **Streamable HTTP transport** (`/mcp` endpoint)
 - **OAuth 2.1 mock endpoints** — full RFC 9728/8414/7591 discovery, DCR, PKCE, and token exchange
 - **MCP Tasks support** — async long-running operations with cancellation

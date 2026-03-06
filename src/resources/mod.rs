@@ -54,11 +54,7 @@ impl ResourceHandler {
         // Add template resource
         // Note: The template itself is not listed as a resource, only via list_resource_templates
 
-        Ok(ListResourcesResult {
-            resources,
-            next_cursor: None,
-            meta: None,
-        })
+        Ok(ListResourcesResult::with_all_items(resources))
     }
 
     /// List all available resource templates.
@@ -71,21 +67,13 @@ impl ResourceHandler {
         &self,
         _request: Option<PaginatedRequestParams>,
     ) -> Result<ListResourceTemplatesResult, ErrorData> {
-        let template = RawResourceTemplate {
-            uri_template: "test://files/{path}".to_string(),
-            name: "files".to_string(),
-            title: Some("File Template".to_string()),
-            description: Some("Access files by path using a parameterized URI".to_string()),
-            mime_type: Some("text/plain".to_string()),
-            icons: None,
-        }
-        .no_annotation();
+        let template = RawResourceTemplate::new("test://files/{path}", "files")
+            .with_title("File Template")
+            .with_description("Access files by path using a parameterized URI")
+            .with_mime_type("text/plain")
+            .no_annotation();
 
-        Ok(ListResourceTemplatesResult {
-            resource_templates: vec![template],
-            next_cursor: None,
-            meta: None,
-        })
+        Ok(ListResourceTemplatesResult::with_all_items(vec![template]))
     }
 
     /// Read a resource by URI.
@@ -101,9 +89,7 @@ impl ResourceHandler {
 
         // Try static resources first
         if let Some(content) = static_resources::read_static_resource(uri) {
-            return Ok(ReadResourceResult {
-                contents: vec![content],
-            });
+            return Ok(ReadResourceResult::new(vec![content]));
         }
 
         // Try dynamic resources
@@ -111,21 +97,15 @@ impl ResourceHandler {
             "test://dynamic/counter" => {
                 let value = self.counter_state.increment();
                 let content = dynamic_resources::get_counter_content(value);
-                return Ok(ReadResourceResult {
-                    contents: vec![content],
-                });
+                return Ok(ReadResourceResult::new(vec![content]));
             }
             "test://dynamic/timestamp" => {
                 let content = dynamic_resources::get_timestamp_content();
-                return Ok(ReadResourceResult {
-                    contents: vec![content],
-                });
+                return Ok(ReadResourceResult::new(vec![content]));
             }
             "test://dynamic/random" => {
                 let content = dynamic_resources::get_random_content();
-                return Ok(ReadResourceResult {
-                    contents: vec![content],
-                });
+                return Ok(ReadResourceResult::new(vec![content]));
             }
             _ => {}
         }
@@ -138,9 +118,7 @@ impl ResourceHandler {
                 text: format!("File content for path: {path}"),
                 meta: None,
             };
-            return Ok(ReadResourceResult {
-                contents: vec![content],
-            });
+            return Ok(ReadResourceResult::new(vec![content]));
         }
 
         // Unknown resource

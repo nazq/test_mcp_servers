@@ -170,6 +170,7 @@ impl McpTestServer {
             sse_keep_alive: Some(std::time::Duration::from_secs(15)),
             sse_retry: Some(std::time::Duration::from_secs(3)),
             stateful_mode: false,
+            json_response: false,
             cancellation_token: ct.clone(),
         };
 
@@ -628,12 +629,13 @@ impl McpTestServer {
 
 #[tool_handler(router = self.tool_router)]
 #[task_handler(processor = self.processor)]
-#[allow(deprecated, clippy::significant_drop_tightening)] // task_handler macro (rmcp 0.16)
+// TODO(upstream): remove allow(deprecated) once rmcp-macros publishes fix
+// PR: https://github.com/modelcontextprotocol/rust-sdk/pull/727
+#[allow(deprecated, clippy::significant_drop_tightening)]
 impl ServerHandler for McpTestServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::LATEST,
-            capabilities: ServerCapabilities::builder()
+        ServerInfo::new(
+            ServerCapabilities::builder()
                 .enable_tools()
                 .enable_tool_list_changed()
                 .enable_prompts()
@@ -653,27 +655,25 @@ impl ServerHandler for McpTestServer {
                     ext
                 })
                 .build(),
-            server_info: Implementation {
-                name: "mcp-test-server".to_string(),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-                title: Some("MCP Test Server".to_string()),
-                description: Some(
-                    "Comprehensive MCP test server for validating client implementations."
-                        .to_string(),
-                ),
-                icons: Some(vec![Icon {
-                    src: crate::icons::SERVER_ICON_SVG.to_string(),
-                    mime_type: Some("image/svg+xml".to_string()),
-                    sizes: Some(vec!["any".to_string()]),
-                }]),
-                website_url: Some("https://github.com/nazq/test_mcp_servers".to_string()),
-            },
-            instructions: Some(
-                "A comprehensive MCP test server providing tools, prompts, and resources \
-                 for testing MCP client implementations."
-                    .to_string(),
-            ),
-        }
+        )
+        .with_protocol_version(ProtocolVersion::LATEST)
+        .with_server_info(
+            Implementation::new("mcp-test-server", env!("CARGO_PKG_VERSION"))
+                .with_title("MCP Test Server")
+                .with_description(
+                    "Comprehensive MCP test server for validating client implementations.",
+                )
+                .with_icons(vec![
+                    Icon::new(crate::icons::SERVER_ICON_SVG)
+                        .with_mime_type("image/svg+xml")
+                        .with_sizes(vec!["any".to_string()]),
+                ])
+                .with_website_url("https://github.com/nazq/test_mcp_servers"),
+        )
+        .with_instructions(
+            "A comprehensive MCP test server providing tools, prompts, and resources \
+             for testing MCP client implementations.",
+        )
     }
 
     async fn list_prompts(
@@ -796,13 +796,9 @@ impl ServerHandler for McpTestServer {
                 .collect()
         };
 
-        Ok(CompleteResult {
-            completion: CompletionInfo {
-                values: filtered,
-                total: None,
-                has_more: Some(false),
-            },
-        })
+        Ok(CompleteResult::new(CompletionInfo::new(filtered).map_err(
+            |e| rmcp::ErrorData::new(rmcp::model::ErrorCode::INTERNAL_ERROR, e, None),
+        )?))
     }
 
     async fn set_level(

@@ -2,7 +2,7 @@
 
 use rmcp::{
     ErrorData as McpError,
-    model::{Prompt, PromptArgument, PromptMessage, PromptMessageContent, PromptMessageRole},
+    model::{Prompt, PromptArgument, PromptMessage, PromptMessageRole},
 };
 use std::{collections::HashMap, hash::BuildHasher};
 
@@ -10,82 +10,53 @@ use std::{collections::HashMap, hash::BuildHasher};
 #[must_use]
 pub fn get_all_prompts() -> Vec<Prompt> {
     vec![
-        Prompt {
-            name: "greeting".to_string(),
-            title: None,
-            description: Some("A simple greeting prompt".to_string()),
-            arguments: Some(vec![PromptArgument {
-                name: "name".to_string(),
-                title: None,
-                description: Some("Name to greet".to_string()),
-                required: Some(true),
-            }]),
-            icons: None,
-            meta: None,
-        },
-        Prompt {
-            name: "code_review".to_string(),
-            title: None,
-            description: Some("Multi-message prompt for code review".to_string()),
-            arguments: Some(vec![
-                PromptArgument {
-                    name: "code".to_string(),
-                    title: None,
-                    description: Some("Code to review".to_string()),
-                    required: Some(true),
-                },
-                PromptArgument {
-                    name: "language".to_string(),
-                    title: None,
-                    description: Some("Programming language".to_string()),
-                    required: Some(true),
-                },
+        Prompt::new(
+            "greeting",
+            Some("A simple greeting prompt"),
+            Some(vec![
+                PromptArgument::new("name")
+                    .with_description("Name to greet")
+                    .with_required(true),
             ]),
-            icons: None,
-            meta: None,
-        },
-        Prompt {
-            name: "summarize".to_string(),
-            title: None,
-            description: Some("Prompt to summarize text".to_string()),
-            arguments: Some(vec![PromptArgument {
-                name: "text".to_string(),
-                title: None,
-                description: Some("Text to summarize".to_string()),
-                required: Some(true),
-            }]),
-            icons: None,
-            meta: None,
-        },
-        Prompt {
-            name: "translate".to_string(),
-            title: None,
-            description: Some("Translate text to another language".to_string()),
-            arguments: Some(vec![
-                PromptArgument {
-                    name: "text".to_string(),
-                    title: None,
-                    description: Some("Text to translate".to_string()),
-                    required: Some(true),
-                },
-                PromptArgument {
-                    name: "language".to_string(),
-                    title: None,
-                    description: Some("Target language".to_string()),
-                    required: Some(true),
-                },
+        ),
+        Prompt::new(
+            "code_review",
+            Some("Multi-message prompt for code review"),
+            Some(vec![
+                PromptArgument::new("code")
+                    .with_description("Code to review")
+                    .with_required(true),
+                PromptArgument::new("language")
+                    .with_description("Programming language")
+                    .with_required(true),
             ]),
-            icons: None,
-            meta: None,
-        },
-        Prompt {
-            name: "with_resource".to_string(),
-            title: None,
-            description: Some("Prompt that references an embedded resource".to_string()),
-            arguments: Some(vec![]),
-            icons: None,
-            meta: None,
-        },
+        ),
+        Prompt::new(
+            "summarize",
+            Some("Prompt to summarize text"),
+            Some(vec![
+                PromptArgument::new("text")
+                    .with_description("Text to summarize")
+                    .with_required(true),
+            ]),
+        ),
+        Prompt::new(
+            "translate",
+            Some("Translate text to another language"),
+            Some(vec![
+                PromptArgument::new("text")
+                    .with_description("Text to translate")
+                    .with_required(true),
+                PromptArgument::new("language")
+                    .with_description("Target language")
+                    .with_required(true),
+            ]),
+        ),
+        Prompt::new(
+            "with_resource",
+            Some("Prompt that references an embedded resource"),
+            Some(vec![]),
+        ),
     ]
 }
 
@@ -120,12 +91,10 @@ fn generate_greeting<S: BuildHasher>(
         .get("name")
         .ok_or_else(|| McpError::invalid_params("Missing required argument: name", None))?;
 
-    Ok(vec![PromptMessage {
-        role: PromptMessageRole::User,
-        content: PromptMessageContent::Text {
-            text: format!("Hello, {name}!"),
-        },
-    }])
+    Ok(vec![PromptMessage::new_text(
+        PromptMessageRole::User,
+        format!("Hello, {name}!"),
+    )])
 }
 
 fn generate_code_review<S: BuildHasher>(
@@ -139,19 +108,14 @@ fn generate_code_review<S: BuildHasher>(
         .ok_or_else(|| McpError::invalid_params("Missing required argument: language", None))?;
 
     Ok(vec![
-        PromptMessage {
-            role: PromptMessageRole::User,
-            content: PromptMessageContent::Text {
-                text: format!("Please review this {language} code:\n\n```{language}\n{code}\n```"),
-            },
-        },
-        PromptMessage {
-            role: PromptMessageRole::Assistant,
-            content: PromptMessageContent::Text {
-                text: "I'll review this code for quality, security, and best practices."
-                    .to_string(),
-            },
-        },
+        PromptMessage::new_text(
+            PromptMessageRole::User,
+            format!("Please review this {language} code:\n\n```{language}\n{code}\n```"),
+        ),
+        PromptMessage::new_text(
+            PromptMessageRole::Assistant,
+            "I'll review this code for quality, security, and best practices.",
+        ),
     ])
 }
 
@@ -162,12 +126,10 @@ fn generate_summarize<S: BuildHasher>(
         .get("text")
         .ok_or_else(|| McpError::invalid_params("Missing required argument: text", None))?;
 
-    Ok(vec![PromptMessage {
-        role: PromptMessageRole::User,
-        content: PromptMessageContent::Text {
-            text: format!("Please summarize the following text:\n\n{text}"),
-        },
-    }])
+    Ok(vec![PromptMessage::new_text(
+        PromptMessageRole::User,
+        format!("Please summarize the following text:\n\n{text}"),
+    )])
 }
 
 fn generate_translate<S: BuildHasher>(
@@ -180,27 +142,21 @@ fn generate_translate<S: BuildHasher>(
         .get("language")
         .ok_or_else(|| McpError::invalid_params("Missing required argument: language", None))?;
 
-    Ok(vec![PromptMessage {
-        role: PromptMessageRole::User,
-        content: PromptMessageContent::Text {
-            text: format!("Please translate the following text to {language}:\n\n{text}"),
-        },
-    }])
+    Ok(vec![PromptMessage::new_text(
+        PromptMessageRole::User,
+        format!("Please translate the following text to {language}:\n\n{text}"),
+    )])
 }
 
 fn generate_with_resource() -> Vec<PromptMessage> {
     vec![
-        PromptMessage {
-            role: PromptMessageRole::User,
-            content: PromptMessageContent::Text {
-                text: "Please analyze the resource at test://static/config".to_string(),
-            },
-        },
-        PromptMessage {
-            role: PromptMessageRole::Assistant,
-            content: PromptMessageContent::Text {
-                text: "I'll analyze the configuration resource for you.".to_string(),
-            },
-        },
+        PromptMessage::new_text(
+            PromptMessageRole::User,
+            "Please analyze the resource at test://static/config",
+        ),
+        PromptMessage::new_text(
+            PromptMessageRole::Assistant,
+            "I'll analyze the configuration resource for you.",
+        ),
     ]
 }
