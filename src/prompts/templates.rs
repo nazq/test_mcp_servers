@@ -13,9 +13,11 @@ pub fn get_all_prompts() -> Vec<Prompt> {
         Prompt::new(
             "greeting",
             Some("A simple greeting prompt"),
-            Some(vec![PromptArgument::new("name")
-                .with_description("Name to greet")
-                .with_required(true)]),
+            Some(vec![
+                PromptArgument::new("name")
+                    .with_description("Name to greet")
+                    .with_required(true),
+            ]),
         ),
         Prompt::new(
             "code_review",
@@ -32,9 +34,11 @@ pub fn get_all_prompts() -> Vec<Prompt> {
         Prompt::new(
             "summarize",
             Some("Prompt to summarize text"),
-            Some(vec![PromptArgument::new("text")
-                .with_description("Text to summarize")
-                .with_required(true)]),
+            Some(vec![
+                PromptArgument::new("text")
+                    .with_description("Text to summarize")
+                    .with_required(true),
+            ]),
         ),
         Prompt::new(
             "translate",

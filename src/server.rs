@@ -663,9 +663,11 @@ impl ServerHandler for McpTestServer {
                 .with_description(
                     "Comprehensive MCP test server for validating client implementations.",
                 )
-                .with_icons(vec![Icon::new(crate::icons::SERVER_ICON_SVG)
-                    .with_mime_type("image/svg+xml")
-                    .with_sizes(vec!["any".to_string()])])
+                .with_icons(vec![
+                    Icon::new(crate::icons::SERVER_ICON_SVG)
+                        .with_mime_type("image/svg+xml")
+                        .with_sizes(vec!["any".to_string()]),
+                ])
                 .with_website_url("https://github.com/nazq/test_mcp_servers"),
         )
         .with_instructions(
@@ -794,13 +796,9 @@ impl ServerHandler for McpTestServer {
                 .collect()
         };
 
-        Ok(CompleteResult::new(
-            CompletionInfo::new(filtered).map_err(|e| rmcp::ErrorData::new(
-                rmcp::model::ErrorCode::INTERNAL_ERROR,
-                e,
-                None,
-            ))?,
-        ))
+        Ok(CompleteResult::new(CompletionInfo::new(filtered).map_err(
+            |e| rmcp::ErrorData::new(rmcp::model::ErrorCode::INTERNAL_ERROR, e, None),
+        )?))
     }
 
     async fn set_level(
