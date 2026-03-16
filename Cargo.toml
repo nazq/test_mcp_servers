@@ -13,7 +13,7 @@ readme = "README.md"
 [dependencies]
 # MCP Server SDK
 # MCP SDK: 1.x uses #[non_exhaustive] on model structs (builders required)
-rmcp = { version = "1.1", features = [
+rmcp = { version = "1.2", features = [
     "server",
     "macros",
     "transport-streamable-http-server",
